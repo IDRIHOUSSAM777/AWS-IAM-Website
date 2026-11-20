@@ -1,0 +1,45 @@
+:root {
+  --bg: #141c28;
+  --grid: rgba(255, 255, 255, .035);
+  color-scheme: dark;
+  box-sizing: border-box;
+  font: 400 15px/1.7 "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
+  background: var(--bg);
+  color: #e6edf5;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+*, *::before, *::after {
+  box-sizing: inherit;
+}
+
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: calc(env(safe-area-inset-top, 0px) + 76px);
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background-color: var(--bg);
+  background-image:
+    linear-gradient(var(--grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size: 32px 32px;
+  color: #e6edf5;
+  font: 400 15px/1.7 "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+:focus-visible {
+  outline: 2px solid #ff9900;
+  outline-offset: 3px;
+}
