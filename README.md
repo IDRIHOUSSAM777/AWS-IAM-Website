@@ -14,7 +14,7 @@ The examples run in the browser and do not send requests to AWS or require AWS c
 
 ## Run locally
 
-Requirements: Node.js and npm.
+Requirements: Node.js and npm. Teammates: see **[ONBOARDING.md](ONBOARDING.md)** for the step-by-step guide (French) including the shared Gemini key for KYUBI.
 
 ```powershell
 cd aws-iam-platform
