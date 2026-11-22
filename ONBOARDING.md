@@ -28,6 +28,9 @@ git clone https://github.com/IDRIHOUSSAM777/AWS-IAM-Website-main-after-adding-ai
 cd AWS-IAM-Website-main-after-adding-ai-assistant-
 ```
 
+Si git n'est pas installé : bouton vert **Code → Download ZIP** sur la page GitHub, puis décompresser.
+Dans les deux cas, la suite se passe dans le sous-dossier `aws-iam-platform`.
+
 ---
 
 ## 3. Installer et lancer (le site marche déjà)
