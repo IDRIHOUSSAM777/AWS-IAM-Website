@@ -43,7 +43,7 @@ The site runs without any configuration. KYUBI needs a server-side Gemini key to
    GEMINI_MODEL=gemini-3.5-flash-lite
    ```
 
-4. Restart `npm run dev`. The Vite/Node server reads `.env`; the browser only talks to `/api/kyubi`.
+4. Nothing to restart: the Vite/Node server re-reads `.env` on every request, so a key added before or after `npm run dev` is picked up on the next KYUBI message. The browser only talks to `/api/kyubi`.
 
 `.env` and `.env.*` are git-ignored (only `.env.example` is committed). Without a key the website still works and KYUBI replies that it is not connected yet.
 

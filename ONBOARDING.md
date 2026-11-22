@@ -54,7 +54,8 @@ Personne n'a besoin de créer sa propre clé Gemini. **Une seule clé** est cré
 du projet et partagée via le gestionnaire de mots de passe de l'équipe (1Password, Bitwarden, etc.).
 Un mot de passe ne s'envoie **jamais** par WhatsApp, Discord, email ou dans le code.
 
-Dans `aws-iam-platform` :
+Dans `aws-iam-platform` (l'ordre n'a pas d'importance : la clé peut être ajoutée avant **ou**
+après `npm run dev`, sans relancer) :
 
 ```bash
 cp .env.example .env
@@ -67,13 +68,10 @@ GEMINI_API_KEY=la-cle-de-lequipe
 GEMINI_MODEL=gemini-3.5-flash-lite
 ```
 
-Vite surveille `.env` : dès que le fichier est enregistré, il redémarre tout seul et la nouvelle
-clé est prise en compte. Si KYUBI affiche encore « key was rejected », arrêter le serveur
-(`Ctrl+C`) puis relancer :
-
-```bash
-npm run dev
-```
+Vite surveille `.env`, mais ce n'est même pas nécessaire : le serveur relit `.env` **à chaque
+message envoyé à KYUBI**. Donc une seule exécution de `npm run dev` suffit — pas de `Ctrl+C`,
+pas de deuxième lancement, même si tu as ajouté la clé après avoir démarré le serveur.
+Réessaie simplement une question dans le chat KYUBI.
 
 KYUBI répond maintenant. La clé est lue uniquement par le serveur Node/Vite
 (`server/kyubi-api.mjs`) ; le navigateur n'appelle que `/api/kyubi`, donc la clé
@@ -130,8 +128,8 @@ git diff --cached   # aucune clé dans les fichiers ajoutés
 
 | Symptôme | Cause / solution |
 | --- | --- |
-| « Kyubi is not connected yet » | `.env` absent ou `GEMINI_API_KEY` vide → refaire l'étape 4 et **redémarrer** `npm run dev`. |
-| « The Gemini API key was rejected » | Clé fausse, révoquée ou copiée avec un espace en trop. Corriger `.env`, enregistrer, puis `Ctrl+C` + `npm run dev`. |
+| « Kyubi is not connected yet » | `.env` absent ou `GEMINI_API_KEY` vide → refaire l'étape 4, enregistrer `.env` et renvoyer un message (aucun redémarrage nécessaire). |
+| « The Gemini API key was rejected » | Clé fausse, révoquée ou copiée avec un espace en trop. Corriger `.env`, enregistrer, puis renvoyer un message (aucun redémarrage nécessaire). |
 | Réponses « high demand » / lentes | Limite temporaire de Google ; réessayer. Le modèle par défaut `gemini-3.5-flash-lite` est le plus rapide. |
 | `git push` échoue en HTTP 400 | Réseau/HTTP2 : `git config http.version HTTP/1.1` puis réessayer. |
 | Port 5173 déjà utilisé | `npm run dev -- --port 5174`. |

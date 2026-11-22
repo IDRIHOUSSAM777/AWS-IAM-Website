@@ -123,6 +123,9 @@ export function createKyubiHandler({ root = process.cwd() } = {}) {
   const hits = new Map()
 
   return async function kyubiMiddleware(req, res, next) {
+    // Cheap and idempotent: pick up a `.env` the teammate just edited, without any restart.
+    loadEnvFiles(root)
+
     const path = (req.url ?? '').split('?')[0]
     if (path !== ENDPOINT) {
       if (typeof next === 'function') return next()
