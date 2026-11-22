@@ -1,0 +1,160 @@
+.iam-layout.w { padding-top: 24px; }
+.iam-heading-row { display: flex; align-items: center; justify-content: space-between; gap: 20px; flex-wrap: wrap; }
+.iam-toolbar { display: flex; align-items: center; gap: 12px; }
+.iam-pdf, .iam-focus-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 36px;
+  border: 1px solid #1683ff;
+  border-radius: 999px;
+  background: transparent;
+  color: #1683ff;
+  font: 600 13px Arial, sans-serif;
+  cursor: pointer;
+}
+.iam-pdf { padding: 7px 18px; }
+.iam-pdf:hover { background: rgba(22, 131, 255, .1); }
+.iam-focus-toggle { border: 0; color: var(--tx); padding: 0; }
+.iam-switch {
+  display: inline-flex;
+  align-items: center;
+  width: 25px;
+  height: 15px;
+  padding: 2px;
+  border-radius: 99px;
+  background: #707985;
+  transition: background .2s ease;
+}
+.iam-switch i { width: 11px; height: 11px; border-radius: 50%; background: #fff; transition: transform .2s ease; }
+.iam-focus-toggle.is-on .iam-switch { background: #0875e1; }
+.iam-focus-toggle.is-on .iam-switch i { transform: translateX(10px); }
+.iam-pdf-error { margin: 8px 0 0; color: var(--rd); font-size: 12px; }
+.iam-reading-layout { display: block; }
+.iam-reading-layout.is-focus {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(250px, 310px);
+  gap: 32px;
+  align-items: start;
+  margin-top: 20px;
+  border-top: 1px solid var(--line);
+}
+.iam-focus-panel {
+  position: sticky;
+  top: 88px;
+  grid-column: 2;
+  grid-row: 1;
+  padding: 48px 0 20px;
+  color: var(--tx);
+  font: 600 14px Arial, sans-serif;
+}
+.iam-focus-panel label { display: block; margin-bottom: 25px; }
+.iam-focus-panel input[type="range"] {
+  display: block;
+  width: 100%;
+  margin: 0;
+  accent-color: #0875e1;
+  cursor: pointer;
+}
+.iam-range-values { display: flex; justify-content: space-between; margin-top: 10px; font: 12px Arial, sans-serif; color: var(--tx); }
+.iam-range-values output { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); }
+.iam-focus-close {
+  position: absolute;
+  top: 18px;
+  right: 0;
+  display: grid;
+  place-items: center;
+  padding: 4px;
+  border: 0;
+  background: transparent;
+  color: var(--mu);
+  cursor: pointer;
+}
+.iam-focus-close:hover { color: var(--tx); }
+.iam-guide { padding-bottom: 80px; }
+.iam-hero { padding-top: 26px; }
+.iam-hero h2 {
+  margin: 0 0 16px;
+  color: var(--or);
+  font-size: clamp(32px, 5vw, 52px);
+  line-height: 1.15;
+}
+.iam-hero .lead { margin-bottom: 22px; }
+.iam-guide p, .iam-guide li, .iam-guide dd { font-size: var(--iam-text-size, 16px); }
+.iam-guide .t { font-size: 11px; }
+.iam-summary {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  max-width: 760px;
+  padding: 18px 20px;
+  border: 1px solid rgba(134, 239, 172, .35);
+  background: rgba(134, 239, 172, .06);
+  color: var(--mi);
+}
+.iam-summary svg { flex: none; margin-top: 3px; }
+.iam-summary p { margin: 0; color: var(--tx); }
+.iam-summary b { color: var(--mi); }
+.iam-section { scroll-margin-top: 80px; }
+.iam-cards article { min-height: 210px; }
+.iam-cards h3, .iam-practices h3 { margin: 0 0 10px; }
+.iam-cards .eg { margin-top: 18px !important; }
+.iam-policy-layout { align-items: start; }
+.iam-policy-layout pre { color: var(--tx); }
+.iam-definitions code { color: var(--or); }
+.iam-subtitle { margin-top: 38px; }
+.iam-steps { display: grid; gap: 12px; margin: 0; padding: 0; list-style: none; counter-reset: iam-step; }
+.iam-steps li {
+  counter-increment: iam-step;
+  position: relative;
+  padding: 14px 18px 14px 54px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--mu);
+}
+.iam-steps li::before {
+  content: "0" counter(iam-step);
+  position: absolute;
+  left: 18px;
+  color: var(--or);
+}
+.iam-steps b { color: var(--tx); }
+.iam-note { max-width: 80ch; margin-top: 18px; font-size: 12px; }
+.iam-practices .c { min-height: 145px; }
+.iam-next {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: 24px;
+  padding: 20px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+}
+.iam-next > svg { flex: none; color: var(--or); }
+.iam-next p { margin: 0; color: var(--mu); }
+.iam-next p b { color: var(--tx); }
+.iam-next .btn { display: inline-flex; align-items: center; gap: 8px; margin-left: auto; white-space: nowrap; }
+.iam-footer { padding-top: 22px; padding-bottom: 30px; }
+
+@media (max-width: 820px) {
+  .iam-nav { gap: 10px; }
+  .iam-reading-layout.is-focus { grid-template-columns: minmax(0, 1fr) 230px; gap: 20px; }
+  .iam-next { align-items: flex-start; flex-wrap: wrap; }
+  .iam-next .btn { margin-left: 0; }
+}
+
+@media (max-width: 560px) {
+  .iam-nav .nav-brand-name { display: none; }
+  .iam-nav .pill { margin-left: auto; }
+  .iam-layout.w { padding-top: 12px; }
+  .iam-heading-row { align-items: flex-start; flex-direction: column; }
+  .iam-toolbar { flex-wrap: wrap; }
+  .iam-reading-layout.is-focus { display: flex; flex-direction: column; gap: 0; }
+  .iam-focus-panel { position: relative; order: 0; width: 100%; padding: 48px 0 24px; }
+  .iam-guide { order: 1; width: 100%; }
+  .iam-hero { padding-top: 24px; }
+  .iam-cards article, .iam-practices .c { min-height: 0; }
+  .iam-next .btn { margin-left: 0; }
+}
+

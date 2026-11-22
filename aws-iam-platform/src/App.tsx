@@ -131,7 +131,7 @@ function App() {
           <a className={activeSection === 3 ? 'on' : ''} aria-current={activeSection === 3 ? 'true' : undefined} href="#how-it-works">How</a>
           <a className={`lab-nav-link ${activeSection === 4 ? 'on' : ''}`} aria-current={activeSection === 4 ? 'true' : undefined} href="#lab"><MonitorPlay size={14} aria-hidden="true" />IAM Lab</a>
         </nav>
-        <a className="pill" href="#what-is-iam">Read more</a>
+        <a className="pill" href="/iam">Read more</a>
       </div>
     </header>
 
@@ -288,7 +288,7 @@ function App() {
             <p className="t">Guided missions</p><h3>Follow the steps</h3>
             <p className="mu">Short tasks with hints and a check at the end of each one.</p>
             <ol><li><span>Mission 1</span>Create a user and turn on MFA</li><li><span>Mission 2</span>Add users to a group and attach a policy</li><li><span>Mission 3</span>Let a Lambda function use a role</li></ol>
-            <button className="btn" type="button">Start missions</button>
+            <button className="btn" id="start-mission" type="button">Start missions</button>
           </div>
           <div className="c">
             <p className="t">Free sandbox</p><h3>Build your own</h3>
