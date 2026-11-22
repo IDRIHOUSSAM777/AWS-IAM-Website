@@ -64,7 +64,9 @@ GEMINI_API_KEY=la-cle-de-lequipe
 GEMINI_MODEL=gemini-3.5-flash-lite
 ```
 
-Relancer le serveur :
+Vite surveille `.env` : dès que le fichier est enregistré, il redémarre tout seul et la nouvelle
+clé est prise en compte. Si KYUBI affiche encore « key was rejected », arrêter le serveur
+(`Ctrl+C`) puis relancer :
 
 ```bash
 npm run dev
@@ -76,7 +78,23 @@ n'apparaît jamais dans le code frontend ni dans le réseau du navigateur.
 
 ---
 
-## 5. Ce qu'il ne faut jamais faire
+## 5. Mettre à jour le projet plus tard
+
+Quand le responsable pousse une correction sur GitHub, chaque coéquipier récupère la mise à jour :
+
+```bash
+cd AWS-IAM-Website-main-after-adding-ai-assistant-
+git pull
+cd aws-iam-platform
+npm install   # seulement si package.json a changé
+npm run dev
+```
+
+`.env` reste sur la machine de chacun et n'est jamais écrasé par `git pull` (il est ignoré par git).
+
+---
+
+## 6. Ce qu'il ne faut jamais faire
 
 - Ne pas committer `.env`, `.env.local` ou tout autre `.env.*` (déjà dans `.gitignore`).
 - Ne pas mettre la clé dans un fichier sous `src/`, `public/` ou `index.html`.
@@ -93,7 +111,7 @@ git diff --cached   # aucune clé dans les fichiers ajoutés
 
 ---
 
-## 6. Commandes utiles
+## 7. Commandes utiles
 
 | Commande | Rôle |
 | --- | --- |
@@ -105,19 +123,19 @@ git diff --cached   # aucune clé dans les fichiers ajoutés
 
 ---
 
-## 7. Problèmes fréquents
+## 8. Problèmes fréquents
 
 | Symptôme | Cause / solution |
 | --- | --- |
 | « Kyubi is not connected yet » | `.env` absent ou `GEMINI_API_KEY` vide → refaire l'étape 4 et **redémarrer** `npm run dev`. |
-| « The Gemini API key was rejected » | Clé fausse, révoquée ou copiée avec un espace en trop. |
+| « The Gemini API key was rejected » | Clé fausse, révoquée ou copiée avec un espace en trop. Corriger `.env`, enregistrer, puis `Ctrl+C` + `npm run dev`. |
 | Réponses « high demand » / lentes | Limite temporaire de Google ; réessayer. Le modèle par défaut `gemini-3.5-flash-lite` est le plus rapide. |
 | `git push` échoue en HTTP 400 | Réseau/HTTP2 : `git config http.version HTTP/1.1` puis réessayer. |
 | Port 5173 déjà utilisé | `npm run dev -- --port 5174`. |
 
 ---
 
-## 8. Option avancée (plus tard)
+## 9. Option avancée (plus tard)
 
 Pour que l'équipe n'ait **aucune** clé à manipuler en local, on peut déployer une fois
 `server/index.mjs` sur un hôte Node (Render, Railway, Fly.io, Cloud Run) avec

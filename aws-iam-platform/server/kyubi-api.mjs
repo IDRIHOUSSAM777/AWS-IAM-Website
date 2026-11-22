@@ -11,9 +11,14 @@ const MAX_MESSAGE_CHARS = 4000
 const RATE_WINDOW_MS = 5 * 60 * 1000
 const RATE_MAX = 40
 
-/** Minimal .env reader: no dependency, never overrides variables already set. */
+/**
+ * Minimal .env reader: no dependency. `.env` is applied first and `.env.local` last, so
+ * `.env.local` wins when both define the same name. The files are re-read on every call:
+ * that is what lets an edited `.env` take effect after Vite restarts itself, instead of
+ * keeping the previous key that is already sitting in `process.env`.
+ */
 export function loadEnvFiles(root = process.cwd()) {
-  for (const name of ['.env.local', '.env']) {
+  for (const name of ['.env', '.env.local']) {
     const file = resolve(root, name)
     if (!existsSync(file)) continue
     let raw = ''
@@ -26,7 +31,6 @@ export function loadEnvFiles(root = process.cwd()) {
       const match = /^\s*(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)$/.exec(line)
       if (!match) continue
       const key = match[1]
-      if (process.env[key] !== undefined) continue
       let value = match[2].trim()
       if (
         (value.startsWith('"') && value.endsWith('"')) ||
