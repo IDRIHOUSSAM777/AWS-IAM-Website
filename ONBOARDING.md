@@ -24,8 +24,8 @@ git --version
 ## 2. Cloner le projet
 
 ```bash
-git clone https://github.com/IDRIHOUSSAM777/AWS-IAM-Website-main-after-adding-ai-assistant-.git
-cd AWS-IAM-Website-main-after-adding-ai-assistant-
+git clone https://github.com/IDRIHOUSSAM777/AWS-IAM-Website.git
+cd AWS-IAM-Website
 ```
 
 Si git n'est pas installé : bouton vert **Code → Download ZIP** sur la page GitHub, puis décompresser.
@@ -84,7 +84,7 @@ n'apparaît jamais dans le code frontend ni dans le réseau du navigateur.
 Quand le responsable pousse une correction sur GitHub, chaque coéquipier récupère la mise à jour :
 
 ```bash
-cd AWS-IAM-Website-main-after-adding-ai-assistant-
+cd AWS-IAM-Website
 git pull
 cd aws-iam-platform
 npm install   # seulement si package.json a changé
