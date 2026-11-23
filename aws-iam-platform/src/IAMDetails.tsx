@@ -1,13 +1,15 @@
 import { useRef, useState, type CSSProperties } from 'react'
-import { ArrowRight, BookOpen, Download, ShieldCheck, X } from 'lucide-react'
+import { ArrowRight, BookOpen, Download, PanelLeftClose, PanelLeftOpen, ShieldCheck, X } from 'lucide-react'
 import { jsPDF } from 'jspdf'
 import awsLogo from './assets/aws-logo.png'
+import { iamQuestionSections } from './iamQuestionBank'
 import './App.css'
 import './IAMDetails.css'
 import Kyubi from './kyubi/Kyubi'
 
 function IAMDetails() {
   const [focusMode, setFocusMode] = useState(false)
+  const [questionNavOpen, setQuestionNavOpen] = useState(true)
   const [fontSize, setFontSize] = useState(16)
   const [pdfError, setPdfError] = useState('')
   const articleRef = useRef<HTMLElement>(null)
@@ -79,6 +81,18 @@ function IAMDetails() {
       <div className={`iam-layout w${focusMode ? ' is-focus' : ''}`}>
         <div className="iam-heading-row">
           <div className="iam-toolbar">
+            <button
+              className="iam-pdf iam-question-nav-toggle"
+              type="button"
+              aria-expanded={questionNavOpen}
+              aria-label={questionNavOpen ? 'Hide question bank sidebar' : 'Show question bank sidebar'}
+              title={questionNavOpen ? 'Hide question bank sidebar' : 'Show question bank sidebar'}
+              onClick={() => setQuestionNavOpen((open) => !open)}
+            >
+              {questionNavOpen
+                ? <PanelLeftClose size={16} aria-hidden="true" />
+                : <PanelLeftOpen size={16} aria-hidden="true" />}
+            </button>
             <button className="iam-pdf" type="button" onClick={downloadArticle} title="Download the article as a PDF">
               <Download size={15} aria-hidden="true" /> PDF
             </button>
@@ -96,26 +110,42 @@ function IAMDetails() {
         </div>
         {pdfError && <p className="iam-pdf-error" role="alert">{pdfError}</p>}
 
-        <div className={`iam-reading-layout${focusMode ? ' is-focus' : ''}`}>
-          {focusMode && (
-            <aside className="iam-focus-panel" aria-label="Reading settings">
-              <button className="iam-focus-close" type="button" onClick={() => setFocusMode(false)} aria-label="Close focus mode">
-                <X size={18} aria-hidden="true" />
-              </button>
-              <label htmlFor="iam-font-size">Ajuster la taille du texte</label>
-              <input
-                id="iam-font-size"
-                type="range"
-                min="14"
-                max="20"
-                step="1"
-                value={fontSize}
-                onChange={(event) => setFontSize(Number(event.target.value))}
-              />
-              <div className="iam-range-values"><span>14</span><output htmlFor="iam-font-size">{fontSize}</output><span>20</span></div>
-            </aside>
-          )}
-          <main className="iam-guide" ref={articleRef} style={{ '--iam-text-size': `${fontSize}px` } as CSSProperties}>
+        <div className={`iam-reading-layout${questionNavOpen ? '' : ' is-sidebar-closed'}`}>
+          <aside className="iam-question-nav" id="iam-question-nav" aria-label="Sommaire de la banque de questions" hidden={!questionNavOpen}>
+            <h2>Banque de questions</h2>
+            <nav aria-label="Sections et sujets">
+              {iamQuestionSections.map((section) => (
+                <section key={section.id}>
+                  <h3>{section.title}</h3>
+                  <ul>
+                    {section.topics.map((topic) => (
+                      <li key={topic.id}><a href={`#${topic.id}`}>{topic.title}</a></li>
+                    ))}
+                  </ul>
+                </section>
+              ))}
+            </nav>
+          </aside>
+          <div className={`iam-reading-content${focusMode ? ' is-focus' : ''}`}>
+            {focusMode && (
+              <aside className="iam-focus-panel" aria-label="Reading settings">
+                <button className="iam-focus-close" type="button" onClick={() => setFocusMode(false)} aria-label="Close focus mode">
+                  <X size={18} aria-hidden="true" />
+                </button>
+                <label htmlFor="iam-font-size">Ajuster la taille du texte</label>
+                <input
+                  id="iam-font-size"
+                  type="range"
+                  min="14"
+                  max="20"
+                  step="1"
+                  value={fontSize}
+                  onChange={(event) => setFontSize(Number(event.target.value))}
+                />
+                <div className="iam-range-values"><span>14</span><output htmlFor="iam-font-size">{fontSize}</output><span>20</span></div>
+              </aside>
+            )}
+            <main className="iam-guide" ref={articleRef} style={{ '--iam-text-size': `${fontSize}px` } as CSSProperties}>
         <section className="w iam-hero" id="overview">
           <p className="t">AWS Identity and Access Management</p>
           <h2>A closer look at IAM</h2>
@@ -204,7 +234,27 @@ function IAMDetails() {
             <a className="btn" href="/#start-mission">Explore more IAM <ArrowRight size={15} aria-hidden="true" /></a>
           </div>
         </section>
-          </main>
+        <section className="w s iam-section iam-question-bank" id="question-bank">
+          <div className="sh"><b>04</b><h2>— Banque de questions AWS IAM</h2></div>
+          {iamQuestionSections.map((section) => (
+            <section className="iam-question-section" id={section.id} key={section.id}>
+              <h3>{section.title}</h3>
+              {section.topics.map((topic) => (
+                <section className="iam-question-topic" id={topic.id} key={topic.id}>
+                  <h4>{topic.title}</h4>
+                  {topic.questions.map((question) => (
+                    <article className="iam-question-answer" id={question.id} key={question.id}>
+                      <h5>{question.question}</h5>
+                      <p><b>Réponse :</b> {question.answer}</p>
+                    </article>
+                  ))}
+                </section>
+              ))}
+            </section>
+          ))}
+        </section>
+            </main>
+          </div>
         </div>
       </div>
 
