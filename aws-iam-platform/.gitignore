@@ -12,10 +12,22 @@ dist
 dist-ssr
 *.local
 
-# Server secrets (KYUBI / Gemini)
+# Server secrets (KYUBI / Gemini / database) — never commit
 .env
 .env.*
 !.env.example
+*.env
+
+# Local private notes (password reminders, etc.)
+env-lines-to-add.txt
+
+# Database dumps with real data — never commit.
+# The empty structure database/schema.sql stays tracked.
+*.dump
+*.dump.sql
+*dump*.sql
+*.sql.gz
+*.bak
 
 # Editor directories and files
 .vscode/*

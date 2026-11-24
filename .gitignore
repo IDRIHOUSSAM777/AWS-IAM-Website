@@ -1,9 +1,25 @@
 .DS_Store
+Thumbs.db
 node_modules/
 dist/
 dist-ssr/
 
-# Server secrets (KYUBI / Gemini) — never commit
+# Server secrets — never commit
 .env
 .env.*
 !.env.example
+*.env
+
+# Local private notes (password reminders, etc.)
+env-lines-to-add.txt
+
+# Database dumps with real data — never commit.
+# The empty structure database/schema.sql stays tracked.
+*.dump
+*.dump.sql
+*dump*.sql
+*.sql.gz
+*.bak
+
+# Local archives
+*.zip

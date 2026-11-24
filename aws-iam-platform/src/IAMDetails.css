@@ -79,7 +79,6 @@
   color: var(--tx);
   font: 600 14px Arial, sans-serif;
 }
-.iam-focus-panel label { display: block; margin-bottom: 25px; }
 .iam-focus-panel input[type="range"] {
   display: block;
   width: 100%;

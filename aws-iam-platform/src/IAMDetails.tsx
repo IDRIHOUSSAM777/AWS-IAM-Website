@@ -81,18 +81,20 @@ function IAMDetails() {
       <div className={`iam-layout w${focusMode ? ' is-focus' : ''}`}>
         <div className="iam-heading-row">
           <div className="iam-toolbar">
-            <button
-              className="iam-pdf iam-question-nav-toggle"
-              type="button"
-              aria-expanded={questionNavOpen}
-              aria-label={questionNavOpen ? 'Hide question bank sidebar' : 'Show question bank sidebar'}
-              title={questionNavOpen ? 'Hide question bank sidebar' : 'Show question bank sidebar'}
-              onClick={() => setQuestionNavOpen((open) => !open)}
-            >
-              {questionNavOpen
-                ? <PanelLeftClose size={16} aria-hidden="true" />
-                : <PanelLeftOpen size={16} aria-hidden="true" />}
-            </button>
+            {!focusMode && (
+              <button
+                className="iam-pdf iam-question-nav-toggle"
+                type="button"
+                aria-expanded={questionNavOpen}
+                aria-label={questionNavOpen ? 'Hide question bank sidebar' : 'Show question bank sidebar'}
+                title={questionNavOpen ? 'Hide question bank sidebar' : 'Show question bank sidebar'}
+                onClick={() => setQuestionNavOpen((open) => !open)}
+              >
+                {questionNavOpen
+                  ? <PanelLeftClose size={16} aria-hidden="true" />
+                  : <PanelLeftOpen size={16} aria-hidden="true" />}
+              </button>
+            )}
             <button className="iam-pdf" type="button" onClick={downloadArticle} title="Download the article as a PDF">
               <Download size={15} aria-hidden="true" /> PDF
             </button>
@@ -110,9 +112,9 @@ function IAMDetails() {
         </div>
         {pdfError && <p className="iam-pdf-error" role="alert">{pdfError}</p>}
 
-        <div className={`iam-reading-layout${questionNavOpen ? '' : ' is-sidebar-closed'}`}>
-          <aside className="iam-question-nav" id="iam-question-nav" aria-label="Sommaire de la banque de questions" hidden={!questionNavOpen}>
-            <h2>Banque de questions</h2>
+        <div className={`iam-reading-layout${questionNavOpen && !focusMode ? '' : ' is-sidebar-closed'}`}>
+          <aside className="iam-question-nav" id="iam-question-nav" aria-label="Sommaire de la banque de questions" hidden={!questionNavOpen || focusMode}>
+            
             <nav aria-label="Sections et sujets">
               {iamQuestionSections.map((section) => (
                 <section key={section.id}>
@@ -132,7 +134,6 @@ function IAMDetails() {
                 <button className="iam-focus-close" type="button" onClick={() => setFocusMode(false)} aria-label="Close focus mode">
                   <X size={18} aria-hidden="true" />
                 </button>
-                <label htmlFor="iam-font-size">Ajuster la taille du texte</label>
                 <input
                   id="iam-font-size"
                   type="range"
@@ -140,12 +141,13 @@ function IAMDetails() {
                   max="20"
                   step="1"
                   value={fontSize}
+                  aria-label="Text size"
                   onChange={(event) => setFontSize(Number(event.target.value))}
                 />
                 <div className="iam-range-values"><span>14</span><output htmlFor="iam-font-size">{fontSize}</output><span>20</span></div>
               </aside>
             )}
-            <main className="iam-guide" ref={articleRef} style={{ '--iam-text-size': `${fontSize}px` } as CSSProperties}>
+            <main className="iam-guide" ref={articleRef} style={{ '--iam-text-size': `${fontSize + (focusMode ? 2 : 0)}px` } as CSSProperties}>
         <section className="w iam-hero" id="overview">
           <p className="t">AWS Identity and Access Management</p>
           <h2>A closer look at IAM</h2>

@@ -1,0 +1,136 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" role="img" aria-label="Kyubi, friendly">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="30%" r="80%">
+      <stop offset="0" stop-color="#1b2b42"/>
+      <stop offset="1" stop-color="#0a111c"/>
+    </radialGradient>
+    <radialGradient id="halo" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#ff9900" stop-opacity=".22"/>
+      <stop offset="1" stop-color="#ff9900" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="fur" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffb452"/>
+      <stop offset=".55" stop-color="#ff9126"/>
+      <stop offset="1" stop-color="#ef6c0b"/>
+    </linearGradient>
+    <linearGradient id="furTail" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0" stop-color="#e85f07"/>
+      <stop offset=".65" stop-color="#ff9126"/>
+      <stop offset="1" stop-color="#ffc266"/>
+    </linearGradient>
+    <linearGradient id="earIn" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0" stop-color="#3b1d0e"/>
+      <stop offset="1" stop-color="#6b3820"/>
+    </linearGradient>
+    <radialGradient id="iris" cx="45%" cy="40%" r="65%">
+      <stop offset="0" stop-color="#ff7a5c"/>
+      <stop offset=".55" stop-color="#f02c12"/>
+      <stop offset="1" stop-color="#9c0d09"/>
+    </radialGradient>
+    <path id="tail" d="M96 150 C 78 140 69 120 73 99 C 76 83 87 75 96 87 C 105 75 116 83 119 99 C 123 120 114 140 96 150 Z" fill="url(#furTail)" stroke="#4a2407" stroke-width="3.2" stroke-linejoin="round"/>
+    <path id="tailGlow" d="M96 142 C 84 132 79 116 81 101 C 83 91 89 85 96 94 C 103 85 109 91 111 101 C 113 116 108 132 96 142 Z" fill="#ffc46b" opacity=".32"/>
+    <g id="ear">
+      <path d="M62 94 C 50 74 42 45 49 35 C 57 25 76 44 89 66 Z" fill="url(#fur)" stroke="#4a2407" stroke-width="3.2" stroke-linejoin="round"/>
+      <path d="M62 82 C 55 66 51 49 54 43 C 59 37 70 52 79 66 Z" fill="url(#earIn)" stroke="none"/>
+    </g>
+  </defs>
+  <circle cx="96" cy="96" r="96" fill="url(#bg)"/>
+  <circle cx="96" cy="108" r="76" fill="url(#halo)"/>
+
+  <!-- nine tails -->
+  <g>
+    <use href="#tail" transform="rotate(-78 96 150)"/>
+    <use href="#tail" transform="rotate(-58 96 150)"/>
+    <use href="#tail" transform="rotate(-38 96 150)"/>
+    <use href="#tail" transform="rotate(-18 96 150)"/>
+    <use href="#tail" transform="rotate(18 96 150)"/>
+    <use href="#tail" transform="rotate(38 96 150)"/>
+    <use href="#tail" transform="rotate(58 96 150)"/>
+    <use href="#tail" transform="rotate(78 96 150)"/>
+    <use href="#tail" transform="rotate(0 96 150)"/>
+    <use href="#tailGlow" transform="rotate(-78 96 150)"/>
+    <use href="#tailGlow" transform="rotate(-58 96 150)"/>
+    <use href="#tailGlow" transform="rotate(-38 96 150)"/>
+    <use href="#tailGlow" transform="rotate(-18 96 150)"/>
+    <use href="#tailGlow" transform="rotate(18 96 150)"/>
+    <use href="#tailGlow" transform="rotate(38 96 150)"/>
+    <use href="#tailGlow" transform="rotate(58 96 150)"/>
+    <use href="#tailGlow" transform="rotate(78 96 150)"/>
+    <use href="#tailGlow" transform="rotate(0 96 150)"/>
+  </g>
+
+  <!-- shoulders -->
+  <path d="M46 192 C 50 160 70 146 96 146 C 122 146 142 160 146 192 Z" fill="url(#fur)" stroke="#4a2407" stroke-width="3.2"/>
+  <path d="M84 158 C 85 149 90 145 96 145 C 102 145 107 149 108 158 C 112 172 106 186 96 186 C 86 186 80 172 84 158 Z" fill="#ffe3bd" opacity=".9"/>
+
+  <!-- ears behind the head -->
+  <use href="#ear"/>
+  <use href="#ear" transform="translate(192,0) scale(-1,1)"/>
+
+  <!-- head -->
+  <path d="M96 66 C 70 66 55 83 55 108 C 55 117 57 124 61 130 L 48 135 L 61 139 L 55 147 L 69 146 C 77 155 86 159 96 159 C 106 159 115 155 123 146 L 137 147 L 131 139 L 144 135 L 131 130 C 135 124 137 117 137 108 C 137 83 122 66 96 66 Z" fill="url(#fur)" stroke="#4a2407" stroke-width="3.4" stroke-linejoin="round"/>
+
+  <!-- hair tuft -->
+  <path d="M84 72 C 80 56 84 43 94 35 C 96 47 95 58 91 68 Z" fill="url(#fur)" stroke="#4a2407" stroke-width="3.2" stroke-linejoin="round"/>
+  <path d="M94 69 C 95 52 103 42 113 38 C 111 50 106 62 100 70 Z" fill="url(#fur)" stroke="#4a2407" stroke-width="3.2" stroke-linejoin="round"/>
+
+  <!-- cream muzzle -->
+  <ellipse cx="96" cy="133" rx="23" ry="15" fill="#ffe3bd"/>
+
+  <!-- whiskers -->
+  <g stroke="#7a3a12" stroke-width="1.8" stroke-linecap="round" opacity=".75">
+    <path d="M71 128 L 46 122"/>
+    <path d="M70 134 L 44 134"/>
+    <path d="M121 128 L 146 122"/>
+    <path d="M122 134 L 148 134"/>
+  </g>
+
+  <!-- nose -->
+  <path d="M96 121 L 102 126 L 96 131 L 90 126 Z" fill="#3a1c0d" stroke="#3a1c0d" stroke-width="1.5" stroke-linejoin="round"/>
+
+  
+  <path d="M66 93 Q 76 88 86 92" fill="none" stroke="#4a2407" stroke-width="3.2" stroke-linecap="round"/>
+  <path d="M106 92 Q 116 88 126 93" fill="none" stroke="#4a2407" stroke-width="3.2" stroke-linecap="round"/>
+
+  <g class="eyes">
+    
+    <path d="M66 110 Q 77 101 88 110" fill="none" stroke="#4a2407" stroke-width="4.2" stroke-linecap="round"/>
+    <g>
+      <path d="M104 108 Q 115 98 126 108 Q 115 118 104 108 Z" fill="#fff4e6" stroke="#4a2407" stroke-width="2.4"/>
+      <circle cx="114" cy="108" r="5.2" fill="url(#iris)"/>
+      <circle cx="114" cy="108" r="2.4" fill="#1a0b08"/>
+      <circle cx="112.4" cy="106.2" r="1.35" fill="#fff" opacity=".95"/>
+    </g>
+  </g>
+
+  
+  <path d="M87 133 Q 96 152 105 133 Z" fill="#5a1d12" stroke="#4a2407" stroke-width="2.4" stroke-linejoin="round"/>
+  <path d="M91 145 Q 96 149 101 145 Q 96 141 91 145 Z" fill="#ff8f8f"/>
+
+  <!-- headphones -->
+  <path d="M58 88 C 60 62 78 51 96 51 C 114 51 132 62 134 88" fill="none" stroke="#161d29" stroke-width="10" stroke-linecap="round"/>
+  <path d="M61 86 C 64 65 79 55 96 55 C 113 55 128 65 131 86" fill="none" stroke="#3f5169" stroke-width="3" stroke-linecap="round"/>
+  <g>
+    <rect x="42" y="88" width="24" height="32" rx="10" fill="#161d29" stroke="#090e16" stroke-width="2"/>
+    <rect x="47" y="93" width="14" height="22" rx="7" fill="#2c3a4d"/>
+    <circle cx="54" cy="104" r="4.2" fill="#ff9900"/>
+  </g>
+  <g>
+    <rect x="126" y="88" width="24" height="32" rx="10" fill="#161d29" stroke="#090e16" stroke-width="2"/>
+    <rect x="131" y="93" width="14" height="22" rx="7" fill="#2c3a4d"/>
+    <circle cx="138" cy="104" r="4.2" fill="#ff9900"/>
+  </g>
+  <path d="M141 118 C 143 135 134 144 122 143" fill="none" stroke="#161d29" stroke-width="4.5" stroke-linecap="round"/>
+  <circle cx="120" cy="143" r="4.6" fill="#ff9900" stroke="#161d29" stroke-width="2"/>
+
+  
+  <g transform="translate(58 150) rotate(-8)">
+    <g fill="url(#fur)" stroke="#4a2407" stroke-width="2.8" stroke-linejoin="round">
+      <rect x="-13" y="-26" width="10" height="32" rx="5" transform="rotate(-17 0 0)"/>
+      <rect x="2" y="-28" width="10" height="34" rx="5" transform="rotate(11 0 0)"/>
+    </g>
+    <path d="M-17 8 C -17 -2 -10 -7 -1 -7 C 8 -7 15 -2 15 8 C 15 20 7 28 -1 28 C -9 28 -17 20 -17 8 Z" fill="url(#fur)" stroke="#4a2407" stroke-width="2.8"/>
+    <path d="M-8 18 C -4 21 3 21 7 18" fill="none" stroke="#4a2407" stroke-width="2.2" stroke-linecap="round" opacity=".65"/>
+    <path d="M-14 5 C -19 8 -20 14 -17 18" fill="none" stroke="#4a2407" stroke-width="2.8" stroke-linecap="round"/>
+  </g>
+</svg>
