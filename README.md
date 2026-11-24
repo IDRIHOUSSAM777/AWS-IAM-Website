@@ -17,8 +17,6 @@ Before you run the project, understand this:
   2. give you the **database password privately** (never through a public message).
 - **No database, no password and no real data are included in this repository.** Only `database/schema.sql` (empty structure) is here.
 
-If you prefer not to depend on the owner's VM, you can run your own local database — see [Run your own database](#run-your-own-database-optional).
-
 ---
 
 ## What's inside
@@ -80,72 +78,3 @@ Open the local URL printed by Vite (usually <http://localhost:5173>).
 | KYUBI answers | no | **yes** |
 
 If the VM is off, saving a name shows a polite message instead of an error, and you can still use the rest of the site. If there is no Gemini key, KYUBI replies that it is not connected yet — not a bug.
-
-## Database (VM) — how the app connects
-
-- The schema lives in [`aws-iam-platform/database/schema.sql`](aws-iam-platform/database/schema.sql). It is safe to run twice.
-- The backend reads `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME` from `.env` (`server/profile-api.mjs`).
-- The database account `aws` only has rights on `aws_iam_platform` (least privilege).
-- The owner's VM is at `192.168.59.128`, port `3306`, database `aws_iam_platform`.
-
-### Run your own database (optional)
-
-Instead of the owner's VM, you can run a local MariaDB with Docker:
-
-```bash
-docker run -d --name aws-iam-db -p 3306:3306 \
-  -e MARIADB_ROOT_PASSWORD=rootpass \
-  mariadb:11
-
-docker exec -it aws-iam-db mariadb -uroot -prootpass \
-  -e "CREATE USER IF NOT EXISTS 'aws'@'%' IDENTIFIED BY 'choose-a-strong-password'; FLUSH PRIVILEGES;"
-
-docker exec -i aws-iam-db mariadb -uroot -prootpass < database/schema.sql
-```
-
-Then use this in `.env`:
-
-```bash
-DB_HOST=127.0.0.1
-DB_PORT=3306
-DB_USER=aws
-DB_PASSWORD=choose-a-strong-password
-DB_NAME=aws_iam_platform
-```
-
-You can also install MariaDB/MySQL normally and import `database/schema.sql` the same way.
-
-## KYUBI, the AI assistant (one shared Gemini key)
-
-KYUBI talks to Google Gemini through a small server-side proxy in `server/`, so the API key never reaches the browser.
-
-1. Get the team key from the team password manager (one shared key, no per-person keys).
-2. Put it in `.env`: `GEMINI_API_KEY=...` (optional `GEMINI_MODEL=gemini-3.5-flash-lite`).
-3. `npm run dev` — the key is read only by the Node/Vite server; the browser only calls `/api/kyubi`.
-
-`.env`, `.env.local` and `.env.*` are git-ignored; only `.env.example` (no secret) is committed.
-
-## Build and lint
-
-Run these commands from `aws-iam-platform`:
-
-```powershell
-npm run build
-npm run lint
-```
-
-To serve the production build locally:
-
-```powershell
-npm run preview
-```
-
-| Command | Role |
-| --- | --- |
-| `npm run dev` | Site + APIs on <http://localhost:5173> |
-| `npm run build` | TypeScript check + build to `dist/` |
-| `npm run preview` | Serve the build with the APIs |
-| `npm run start` | Node production server (`PORT`, default `4173`) |
-| `npm run lint` | Oxlint |
-
-See [ONBOARDING.md](ONBOARDING.md) (French) for the step-by-step team guide.
