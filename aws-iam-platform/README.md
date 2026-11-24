@@ -46,7 +46,7 @@ DB_NAME=aws_iam_platform
 
 The database schema is in [`database/schema.sql`](database/schema.sql). It creates the `aws_iam_platform` database and its tables. The backend reads the connection details from `.env` (`server/profile-api.mjs`).
 
-If you want to run your own database instead of the VM, see the "Run your own database" section in the root README.
+If you want to run your own database instead of the VM, install MariaDB/MySQL and import `database/schema.sql`.
 
 ## KYUBI setup (one shared team key)
 

@@ -104,7 +104,7 @@ DB_PASSWORD=le-mot-de-passe-fourni-par-le-proprietaire
 DB_NAME=aws_iam_platform
 ```
 
-Pour tourner **sans la VM**, on peut lancer sa propre base locale avec Docker — voir la section « Run your own database » du README à la racine.
+Pour tourner **sans la VM**, il faut installer sa propre base MySQL/MariaDB et importer `aws-iam-platform/database/schema.sql`.
 
 ---
 
