@@ -60,6 +60,7 @@
 .iam-question-nav ul { display: grid; gap: 3px; margin: 0; padding: 0; list-style: none; }
 .iam-question-nav a { display: block; padding: 6px 9px; border-left: 2px solid transparent; border-radius: 0 4px 4px 0; color: var(--mu); text-decoration: none; line-height: 1.4; transition: background .15s ease, border-color .15s ease, color .15s ease; }
 .iam-question-nav a:hover, .iam-question-nav a:focus-visible { border-left-color: var(--or); background: rgba(255, 153, 0, .08); color: var(--tx); outline: none; }
+.iam-question-nav a[aria-current="page"] { border-left-color: var(--or); background: rgba(255, 153, 0, .08); color: var(--tx); }
 .iam-question-nav a:focus-visible { box-shadow: 0 0 0 2px rgba(255, 153, 0, .28); }
 .iam-reading-content { min-width: 0; }
 .iam-reading-content.is-focus {
@@ -127,9 +128,7 @@
 .iam-summary b { color: var(--mi); }
 .iam-section { scroll-margin-top: 80px; }
 .iam-question-bank { padding-top: 28px; }
-.iam-question-section, .iam-question-topic { scroll-margin-top: 84px; }
-.iam-question-section { margin-top: 34px; }
-.iam-question-section > h3 { margin: 0 0 20px; color: var(--or); font-size: 23px; }
+.iam-question-topic { scroll-margin-top: 84px; }
 .iam-question-topic { margin-top: 28px; }
 .iam-question-topic > h4 { margin: 0 0 14px; font-size: 18px; }
 .iam-question-answer {
@@ -141,6 +140,13 @@
 .iam-question-answer h5 { margin: 0 0 9px; color: var(--tx); font-size: 15px; }
 .iam-question-answer p { margin: 0; color: var(--mu); line-height: 1.6; }
 .iam-question-answer p b { color: var(--or); }
+.iam-question-topic > h4 a { color: inherit; text-decoration: none; }
+.iam-question-topic > h4 a:hover, .iam-question-topic > h4 a:focus-visible { color: var(--or); }
+.iam-back-link, .iam-topic-next { display: inline-block; color: var(--or); text-decoration: none; }
+.iam-back-link:hover, .iam-topic-next:hover { text-decoration: underline; }
+.iam-topic-page .iam-question-topic { margin-top: 20px; }
+.iam-topic-page .iam-question-answer h3 { margin: 0 0 9px; color: var(--tx); font-size: 18px; }
+.iam-topic-next { margin-top: 24px; }
 .iam-cards article { min-height: 210px; }
 .iam-cards h3, .iam-practices h3 { margin: 0 0 10px; }
 .iam-cards .eg { margin-top: 18px !important; }
