@@ -2,7 +2,6 @@ import { createReadStream, existsSync, statSync } from 'node:fs'
 import { createServer } from 'node:http'
 import { extname, resolve, sep } from 'node:path'
 import { createKyubiHandler } from './kyubi-api.mjs'
-import { createProfileHandler } from './profile-api.mjs'
 import { createQuizHandler } from './quiz-api.mjs'
 
 const root = process.cwd()
@@ -33,7 +32,6 @@ if (!existsSync(dist)) {
 }
 
 const kyubi = createKyubiHandler({ root })
-const profile = createProfileHandler()
 const quiz = createQuizHandler()
 
 function serveFile(res, file, status = 200) {
@@ -46,7 +44,12 @@ function serveFile(res, file, status = 200) {
 const server = createServer(async (req, res) => {
   try {
     if ((req.url ?? '').startsWith('/api/')) {
-      await profile(req, res, () => quiz(req, res, () => kyubi(req, res)))
+      await quiz(req, res, () => kyubi(req, res))
+      if (!res.writableEnded) {
+        res.statusCode = 404
+        res.setHeader('Content-Type', 'application/json; charset=utf-8')
+        res.end(JSON.stringify({ error: 'Not found.' }))
+      }
       return
     }
 

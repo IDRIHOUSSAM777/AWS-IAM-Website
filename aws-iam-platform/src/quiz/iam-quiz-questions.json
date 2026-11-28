@@ -1,0 +1,367 @@
+{
+  "version": 1,
+  "questions": [
+    {
+      "id": "easy-01",
+      "difficulty": "easy",
+      "question": "What does AWS IAM stand for?",
+      "choices": [
+        "Identity and Access Management",
+        "Identity and Account Monitoring",
+        "Infrastructure and Access Management"
+      ],
+      "answer": 0,
+      "explanation": "IAM is the AWS service that manages identities and decides which actions they may perform on which resources."
+    },
+    {
+      "id": "easy-02",
+      "difficulty": "easy",
+      "question": "A request matches no Allow statement in any policy. What does IAM do?",
+      "choices": [
+        "Denies it, because IAM denies by default",
+        "Allows it, because no policy blocks it",
+        "Allows it only if the identity belongs to a group"
+      ],
+      "answer": 0,
+      "explanation": "Everything starts denied. An explicit Allow is required before a request can succeed."
+    },
+    {
+      "id": "easy-03",
+      "difficulty": "easy",
+      "question": "Are IAM users, groups, roles, and policies tied to a single AWS Region?",
+      "choices": [
+        "No, they are global and available in every Region",
+        "Yes, each identity exists in one Region only",
+        "Yes, each identity is tied to one Availability Zone"
+      ],
+      "answer": 0,
+      "explanation": "IAM is a global service. A role created once can be used in every Region."
+    },
+    {
+      "id": "easy-04",
+      "difficulty": "easy",
+      "question": "Which IAM identity is designed to give an application temporary credentials?",
+      "choices": [
+        "A role, which is assumed by a trusted identity",
+        "A user, because it has a permanent password",
+        "A group, because it holds the permissions"
+      ],
+      "answer": 0,
+      "explanation": "Roles have no long-term password or access key. A trusted identity assumes the role and receives temporary credentials."
+    },
+    {
+      "id": "easy-05",
+      "difficulty": "easy",
+      "question": "What does multi-factor authentication (MFA) add to a sign-in?",
+      "choices": [
+        "A second verification step, such as a code from an authenticator app",
+        "A second password stored in the AWS console",
+        "A backup access key kept in the account"
+      ],
+      "answer": 0,
+      "explanation": "MFA requires something beyond the password, so a stolen password alone is not enough to sign in."
+    },
+    {
+      "id": "easy-06",
+      "difficulty": "easy",
+      "question": "What is an IAM group?",
+      "choices": [
+        "A collection of users that share the permissions attached to the group",
+        "A container that can hold other groups",
+        "An identity that AWS services assume"
+      ],
+      "answer": 0,
+      "explanation": "Groups make it easier to grant the same permissions to several users. Groups cannot be nested, and they are not identities that can sign in."
+    },
+    {
+      "id": "easy-07",
+      "difficulty": "easy",
+      "question": "Which approach follows the principle of least privilege?",
+      "choices": [
+        "Grant only the permissions needed for the task",
+        "Grant full access, then remove it after an incident",
+        "Grant every permission the team might need later"
+      ],
+      "answer": 0,
+      "explanation": "Least privilege means starting with no access and adding only what a specific task requires."
+    },
+    {
+      "id": "easy-08",
+      "difficulty": "easy",
+      "question": "What is the AWS account root user?",
+      "choices": [
+        "The account owner identity created with the account, which has full access",
+        "The first IAM user created in the account",
+        "A role reserved for AWS Support"
+      ],
+      "answer": 0,
+      "explanation": "The root user is created when the account is created and cannot be restricted by IAM policies. Protect it with MFA and avoid using it for daily work."
+    },
+    {
+      "id": "easy-09",
+      "difficulty": "easy",
+      "question": "Which credentials let an IAM user call AWS from the CLI or an SDK?",
+      "choices": [
+        "An access key ID and a secret access key",
+        "The console password and an MFA code",
+        "A role trust policy"
+      ],
+      "answer": 0,
+      "explanation": "Programmatic access uses an access key pair. Console access uses a password plus MFA."
+    },
+    {
+      "id": "easy-10",
+      "difficulty": "easy",
+      "question": "In a policy statement, what does \"Effect\": \"Allow\" mean?",
+      "choices": [
+        "The listed actions are permitted unless another policy explicitly denies them",
+        "The listed actions are explicitly denied",
+        "The policy is ignored until it is attached to a group"
+      ],
+      "answer": 0,
+      "explanation": "Allow grants the listed actions on the listed resources, but an explicit Deny anywhere still wins."
+    },
+
+    {
+      "id": "medium-01",
+      "difficulty": "medium",
+      "question": "One policy allows s3:GetObject and another policy explicitly denies it. What is the result?",
+      "choices": [
+        "The explicit Deny wins",
+        "The Allow wins if it was attached first",
+        "The policy evaluated last wins"
+      ],
+      "answer": 0,
+      "explanation": "An explicit Deny always overrides any Allow, regardless of attachment order."
+    },
+    {
+      "id": "medium-02",
+      "difficulty": "medium",
+      "question": "A policy is attached to a group. What happens to a user who belongs to that group?",
+      "choices": [
+        "The user inherits the group's permissions in addition to their own",
+        "The group policy replaces the user's own policies",
+        "Group policies apply only to users added after the policy is attached"
+      ],
+      "answer": 0,
+      "explanation": "Effective permissions combine the policies on the user and on every group the user belongs to."
+    },
+    {
+      "id": "medium-03",
+      "difficulty": "medium",
+      "question": "What does a role's trust policy define?",
+      "choices": [
+        "Which principals are allowed to assume the role",
+        "Which actions the role can perform after it is assumed",
+        "Which resources the role can read"
+      ],
+      "answer": 0,
+      "explanation": "The trust policy answers \"who may assume this role\". The permissions policy answers \"what may the role do\"."
+    },
+    {
+      "id": "medium-04",
+      "difficulty": "medium",
+      "question": "An application running on Amazon EC2 needs to read from Amazon S3. What is the best way to grant access?",
+      "choices": [
+        "Attach an IAM role to the instance and let the application use its temporary credentials",
+        "Store an administrator access key in the instance user data",
+        "Create a separate IAM user with a password for each instance"
+      ],
+      "answer": 0,
+      "explanation": "An instance role provides rotating temporary credentials, so no long-term key is stored on the server."
+    },
+    {
+      "id": "medium-05",
+      "difficulty": "medium",
+      "question": "Which practice is recommended for IAM user access keys?",
+      "choices": [
+        "Rotate them regularly and delete keys that are no longer used",
+        "Share one key across the team so it is easier to audit",
+        "Commit encrypted keys to the source repository"
+      ],
+      "answer": 0,
+      "explanation": "Unused or long-lived keys are a common cause of leaked access. Prefer temporary credentials and remove keys you do not need."
+    },
+    {
+      "id": "medium-06",
+      "difficulty": "medium",
+      "question": "What is a permissions boundary?",
+      "choices": [
+        "The maximum permissions an IAM user or role can have",
+        "A list of services that are always denied",
+        "A policy that replaces all identity-based policies"
+      ],
+      "answer": 0,
+      "explanation": "A boundary caps effective permissions. The identity still needs an Allow inside that boundary."
+    },
+    {
+      "id": "medium-07",
+      "difficulty": "medium",
+      "question": "What happens when a role session expires?",
+      "choices": [
+        "The temporary credentials stop working and the role must be assumed again",
+        "The credentials renew automatically for as long as the role exists",
+        "The temporary credentials become long-term access keys"
+      ],
+      "answer": 0,
+      "explanation": "Temporary credentials are valid only for the session duration. After expiry, the identity must call AssumeRole again."
+    },
+    {
+      "id": "medium-08",
+      "difficulty": "medium",
+      "question": "What is an ARN?",
+      "choices": [
+        "A unique identifier for an AWS resource",
+        "The display name of an IAM policy",
+        "The Region where a resource was created"
+      ],
+      "answer": 0,
+      "explanation": "An Amazon Resource Name identifies a specific resource, such as a bucket, a table, or a role."
+    },
+    {
+      "id": "medium-09",
+      "difficulty": "medium",
+      "question": "What is the difference between an identity-based policy and a resource-based policy?",
+      "choices": [
+        "Identity-based policies are attached to users, groups or roles; resource-based policies are attached to a resource such as an S3 bucket",
+        "Identity-based policies only work for roles; resource-based policies only work for users",
+        "Resource-based policies cannot grant access to another account"
+      ],
+      "answer": 0,
+      "explanation": "Identity-based policies describe what an identity may do. Resource-based policies describe who may access that resource, and can grant cross-account access."
+    },
+    {
+      "id": "medium-10",
+      "difficulty": "medium",
+      "question": "A statement uses \"Resource\": \"*\". What does it mean?",
+      "choices": [
+        "It applies to every resource that supports the action, which is usually broader than needed",
+        "It applies only to resources in the current Region",
+        "It applies only to resources whose names start with an asterisk"
+      ],
+      "answer": 0,
+      "explanation": "The wildcard covers all matching resources. Scope the Resource element to the specific ARNs a task needs."
+    },
+
+    {
+      "id": "hard-01",
+      "difficulty": "hard",
+      "question": "A user in account B must assume a role in account A. Which two things are required?",
+      "choices": [
+        "The role's trust policy must allow the caller, and the caller must be allowed to call sts:AssumeRole",
+        "Only the role's trust policy matters",
+        "Only the caller's permission matters"
+      ],
+      "answer": 0,
+      "explanation": "Cross-account access needs both sides: the trusting account allows the principal in its trust policy, and the caller is granted sts:AssumeRole."
+    },
+    {
+      "id": "hard-02",
+      "difficulty": "hard",
+      "question": "Why is an ExternalId used in a role trust policy?",
+      "choices": [
+        "It prevents the confused deputy problem when a third party assumes a role in your account",
+        "It encrypts the temporary session credentials",
+        "It forces the root user to use MFA"
+      ],
+      "answer": 0,
+      "explanation": "An ExternalId ties the trust to a specific customer relationship, so another customer of the same third party cannot be tricked into using your role."
+    },
+    {
+      "id": "hard-03",
+      "difficulty": "hard",
+      "question": "What does a service control policy (SCP) do?",
+      "choices": [
+        "It sets the maximum permissions for accounts in an organization; it does not grant permissions",
+        "It grants permissions to every account in the organization",
+        "It applies only to the management account's root user"
+      ],
+      "answer": 0,
+      "explanation": "SCPs filter what member accounts can do. An identity still needs its own Allow, and an SCP never grants access by itself."
+    },
+    {
+      "id": "hard-04",
+      "difficulty": "hard",
+      "question": "What is the maximum duration of a session created by role chaining?",
+      "choices": [
+        "One hour",
+        "Twelve hours",
+        "Thirty-six hours"
+      ],
+      "answer": 0,
+      "explanation": "When a role session is used to assume another role, the resulting session is limited to one hour, even if the role allows a longer duration."
+    },
+    {
+      "id": "hard-05",
+      "difficulty": "hard",
+      "question": "A policy condition requires \"aws:MultiFactorAuthPresent\": \"true\". What does that enforce?",
+      "choices": [
+        "The request must be made with MFA-authenticated temporary credentials",
+        "The user must enroll an MFA device at the next sign-in",
+        "The request must come from a hardware security key"
+      ],
+      "answer": 0,
+      "explanation": "The condition checks the request context. The caller must have signed in with MFA so the session carries MFA information."
+    },
+    {
+      "id": "hard-06",
+      "difficulty": "hard",
+      "question": "An identity policy allows an action, but a permissions boundary and an SCP also apply. How are effective permissions determined?",
+      "choices": [
+        "By the intersection of all limits: the action must be allowed by the identity policy and not blocked by the boundary or SCP",
+        "By the union of the identity policy and the boundary",
+        "The identity policy always wins over the boundary"
+      ],
+      "answer": 0,
+      "explanation": "Every layer must permit the request. A boundary or SCP can remove permissions that the identity policy allows."
+    },
+    {
+      "id": "hard-07",
+      "difficulty": "hard",
+      "question": "When would an application call AssumeRoleWithWebIdentity?",
+      "choices": [
+        "When a user is authenticated with an OIDC token from a web identity provider",
+        "When a user is authenticated with a SAML assertion from a corporate directory",
+        "When a user signs in to the console with a password"
+      ],
+      "answer": 0,
+      "explanation": "AssumeRoleWithWebIdentity exchanges an OIDC token, such as one from a mobile app or a CI/CD pipeline, for temporary AWS credentials."
+    },
+    {
+      "id": "hard-08",
+      "difficulty": "hard",
+      "question": "What is IAM Access Analyzer used for?",
+      "choices": [
+        "It identifies resources shared outside the account and findings such as unused permissions",
+        "It rotates access keys automatically",
+        "It blocks every public S3 bucket"
+      ],
+      "answer": 0,
+      "explanation": "Access Analyzer reviews policies and resource sharing to surface unintended external access and unused permissions."
+    },
+    {
+      "id": "hard-09",
+      "difficulty": "hard",
+      "question": "Can an IAM group be named as the Principal in a role trust policy?",
+      "choices": [
+        "No, a group is not a principal and cannot be named in a trust policy",
+        "Yes, if the group has its own trust policy",
+        "Yes, but only for groups in the same account"
+      ],
+      "answer": 0,
+      "explanation": "Principals are users, roles, AWS services, or federated identities. Groups only collect users and cannot assume roles."
+    },
+    {
+      "id": "hard-10",
+      "difficulty": "hard",
+      "question": "An identity policy statement uses \"Effect\": \"Allow\" with \"NotAction\". What is the effect?",
+      "choices": [
+        "It allows every action except the ones listed, which can be broader than intended",
+        "It explicitly denies the actions listed",
+        "It denies every action except the ones listed"
+      ],
+      "answer": 0,
+      "explanation": "Allow with NotAction is a broad grant: everything outside the list is allowed on the specified resources. Use it with care."
+    }
+  ]
+}

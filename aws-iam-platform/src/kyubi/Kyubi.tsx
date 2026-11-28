@@ -13,7 +13,7 @@ const HISTORY_LIMIT = 12
 const BADGE_GREETING_MS = 10_000
 
 const WELCOME =
-  "Hey! I'm Kyubi 👋\nYour personal AWS IAM assistant.\nI can help you understand IAM, explore policies and troubleshoot access permissions."
+  "Hello! How can I help you with AWS IAM today?\nI'm Kyubi, your AWS IAM assistant. I can explain IAM, policies and access permissions."
 
 const SUGGESTIONS = [
   'What is AWS IAM?',

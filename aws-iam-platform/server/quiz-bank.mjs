@@ -1,6 +1,6 @@
 // Question bank for the "Check yourself" quiz.
-// Each visitor receives 9 questions drawn at random from this list, and the order of the
-// answers is shuffled for each visitor. `answer` is the index of the right option below.
+// Each anonymous browser session receives 9 questions drawn at random from this list, and the
+// order of the answers is shuffled per session. `answer` is the index of the right option below.
 export const QUIZ_BANK = [
   {
     key: 'default-deny',

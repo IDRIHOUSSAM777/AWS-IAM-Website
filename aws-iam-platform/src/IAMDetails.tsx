@@ -1,7 +1,6 @@
 import { useRef, useState, type CSSProperties } from 'react'
 import { ArrowRight, BookOpen, Download, PanelLeftClose, PanelLeftOpen, ShieldCheck, X } from 'lucide-react'
 import { jsPDF } from 'jspdf'
-import { Link, Navigate, useParams } from 'react-router-dom'
 import awsLogo from './assets/aws-logo.png'
 import { iamQuestionSections } from './iamQuestionBank'
 import './App.css'
@@ -9,14 +8,11 @@ import './IAMDetails.css'
 import Kyubi from './kyubi/Kyubi'
 
 function IAMDetails() {
-  const { topicId } = useParams<{ topicId: string }>()
   const [focusMode, setFocusMode] = useState(false)
   const [questionNavOpen, setQuestionNavOpen] = useState(true)
   const [fontSize, setFontSize] = useState(16)
   const [pdfError, setPdfError] = useState('')
   const articleRef = useRef<HTMLElement>(null)
-  const questionSection = iamQuestionSections.find((section) => section.topics.some((topic) => topic.id === topicId))
-  const questionTopic = questionSection?.topics.find((topic) => topic.id === topicId)
 
   function downloadArticle() {
     const article = articleRef.current
@@ -68,10 +64,6 @@ function IAMDetails() {
     }
 
     pdf.save('aws-iam-guide.pdf')
-  }
-
-  if (topicId && !questionTopic) {
-    return <Navigate to="/iam" replace />
   }
 
   return (
@@ -129,11 +121,7 @@ function IAMDetails() {
                   <h3>{section.title}</h3>
                   <ul>
                     {section.topics.map((topic) => (
-                      <li key={topic.id}>
-                        <Link to={`/iam/questions/${topic.id}`} aria-current={topic.id === topicId ? 'page' : undefined}>
-                          {topic.title}
-                        </Link>
-                      </li>
+                      <li key={topic.id}><a href={`#${topic.id}`}>{topic.title}</a></li>
                     ))}
                   </ul>
                 </section>
@@ -162,23 +150,14 @@ function IAMDetails() {
             <main className="iam-guide" ref={articleRef} style={{ '--iam-text-size': `${fontSize + (focusMode ? 2 : 0)}px` } as CSSProperties}>
         <section className="w iam-hero" id="overview">
           <p className="t">AWS Identity and Access Management</p>
-          <h2>{questionTopic?.title ?? 'A closer look at IAM'}</h2>
-          <p className="lead">
-            {questionTopic && questionSection
-              ? `${questionSection.title} — questions and answers`
-              : 'IAM helps you securely control access to your AWS account. It answers two questions for every request: who is making it, and what are they allowed to do?'}
-          </p>
-          {questionTopic && <Link className="iam-back-link" to="/iam#question-bank">← Back</Link>}
-          {!questionTopic && (
-            <div className="iam-summary">
-              <ShieldCheck size={22} aria-hidden="true" />
-              <p><b>In short:</b> give each person or workload only the permissions it needs, and use temporary credentials whenever possible.</p>
-            </div>
-          )}
+          <h2>A closer look at IAM</h2>
+          <p className="lead">IAM helps you securely control access to your AWS account. It answers two questions for every request: who is making it, and what are they allowed to do?</p>
+          <div className="iam-summary">
+            <ShieldCheck size={22} aria-hidden="true" />
+            <p><b>In short:</b> give each person or workload only the permissions it needs, and use temporary credentials whenever possible.</p>
+          </div>
         </section>
 
-        {!questionTopic && (
-          <>
         <section className="w s iam-section" id="identities">
           <div className="sh"><b>01</b><h2>— IAM identities</h2></div>
           <p className="lead">An identity represents a person or workload that needs to make requests in AWS. Choose the identity type that fits how it will access your account.</p>
@@ -257,22 +236,25 @@ function IAMDetails() {
             <a className="btn" href="/#start-mission">Explore more IAM <ArrowRight size={15} aria-hidden="true" /></a>
           </div>
         </section>
-          </>
-        )}
-        {questionTopic && (
-          <section className="w s iam-section iam-question-bank iam-topic-page">
-            <div className="sh"><b>Q&amp;A</b><h2>— {questionSection?.title}</h2></div>
-            <div className="iam-question-topic">
-              {questionTopic.questions.map((question) => (
-                <article className="iam-question-answer" id={question.id} key={question.id}>
-                  <h3>{question.question}</h3>
-                  <p><b>Réponse :</b> {question.answer}</p>
-                </article>
+        <section className="w s iam-section iam-question-bank" id="question-bank">
+          <div className="sh"><b>04</b><h2>— Banque de questions AWS IAM</h2></div>
+          {iamQuestionSections.map((section) => (
+            <section className="iam-question-section" id={section.id} key={section.id}>
+              <h3>{section.title}</h3>
+              {section.topics.map((topic) => (
+                <section className="iam-question-topic" id={topic.id} key={topic.id}>
+                  <h4>{topic.title}</h4>
+                  {topic.questions.map((question) => (
+                    <article className="iam-question-answer" id={question.id} key={question.id}>
+                      <h5>{question.question}</h5>
+                      <p><b>Réponse :</b> {question.answer}</p>
+                    </article>
+                  ))}
+                </section>
               ))}
-            </div>
-            <Link className="iam-topic-next" to="/iam">Retour à la page principale Read More</Link>
-          </section>
-        )}
+            </section>
+          ))}
+        </section>
             </main>
           </div>
         </div>

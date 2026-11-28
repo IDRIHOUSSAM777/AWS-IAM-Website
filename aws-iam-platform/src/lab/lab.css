@@ -227,7 +227,7 @@
 }
 
 /* ---------- Panels ---------- */
-.lab-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.lab-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 .lab-box {
   position: relative;
   min-width: 0;
@@ -286,9 +286,88 @@
   box-shadow: 0 0 0 3px rgba(255, 176, 32, .12);
 }
 .lab-row .btn { padding: 8px 12px; border-radius: 8px; font-size: 11px; }
+.lab-row .btn:disabled { opacity: .45; cursor: not-allowed; transform: none; }
+.lab-row input:disabled { opacity: .6; cursor: not-allowed; }
 .lab-btn { border-radius: 8px; box-shadow: 0 7px 18px rgba(255, 153, 0, .18); transition: transform .15s ease, filter .15s ease; }
 .lab-btn:hover { transform: translateY(-1px); filter: brightness(1.08); }
 .lab-btn.alt { background: rgba(56, 189, 248, .08); border-color: rgba(56, 189, 248, .45); color: var(--lab-cy); box-shadow: none; }
+
+/* CRUD controls: delete buttons, chip remove buttons, validation, policy editor */
+.lab-mini {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 1px solid var(--lab-line);
+  border-radius: 6px;
+  background: transparent;
+  color: #8ea3b8;
+  cursor: pointer;
+  transition: color .15s ease, border-color .15s ease, background .15s ease;
+}
+.lab-mini:hover { color: #ff9b9b; border-color: rgba(255, 99, 99, .5); background: rgba(255, 99, 99, .08); }
+.lab-x {
+  margin-left: 3px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  line-height: 1;
+  cursor: pointer;
+  opacity: .7;
+}
+.lab-x:hover { opacity: 1; color: #fff; }
+.lab-error { margin: 0 0 8px; color: #ff9b9b; font-size: 10px; line-height: 1.45; }
+.lab-sub { margin: 12px 0 6px; color: var(--lab-cy); font-size: 8px; letter-spacing: .14em; text-transform: uppercase; }
+.lab-scope {
+  display: flex;
+  gap: 7px;
+  margin: 10px 0 12px;
+  padding: 9px 12px;
+  border: 1px solid rgba(148, 190, 235, .2);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, .03);
+  color: #9fb3c8;
+  font-size: 10.5px;
+  line-height: 1.5;
+}
+.lab-scope svg { flex: none; margin-top: 1px; color: var(--lab-cy); }
+.lab-scope b { color: #cfe3f5; }
+.lab-group-tools { display: inline-flex; align-items: center; gap: 6px; }
+.lab-user-name .lab-policy-row { margin-top: 3px; }
+.lab-role .lab-row { margin-bottom: 0; }
+.lab-role .lab-mini { margin-left: auto; }
+.lab-policy-form { display: grid; gap: 7px; }
+.lab-check { display: flex; align-items: center; gap: 7px; color: var(--lab-mu); font-size: 9.5px; }
+.lab-check input { accent-color: var(--lab-or); }
+.lab-policy-list { display: grid; gap: 6px; margin-top: 10px; }
+.lab-policy-card {
+  display: grid;
+  gap: 3px;
+  padding: 8px 9px;
+  border: 1px solid rgba(148, 190, 235, .12);
+  border-radius: 9px;
+  background: rgba(255, 255, 255, .02);
+}
+.lab-policy-card-head { display: flex; align-items: center; gap: 6px; }
+.lab-policy-card-head strong { flex: 1; min-width: 0; overflow: hidden; color: var(--lab-tx); font-size: 10.5px; text-overflow: ellipsis; white-space: nowrap; }
+.lab-policy-tools { display: inline-flex; gap: 4px; }
+.lab-policy-card code { overflow-wrap: anywhere; color: #a9bccd; font-size: 9px; line-height: 1.4; }
+.lab-policy-card small { color: var(--lab-mint); font-size: 8.5px; }
+.lab-effect {
+  flex: none;
+  padding: 1px 6px;
+  border-radius: 999px;
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+.lab-effect.allow { border: 1px solid rgba(52, 211, 153, .35); background: rgba(52, 211, 153, .14); color: var(--lab-mint); }
+.lab-effect.deny { border: 1px solid rgba(255, 99, 99, .35); background: rgba(255, 99, 99, .12); color: #ff9b9b; }
 
 /* users */
 .lab-user-list { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }

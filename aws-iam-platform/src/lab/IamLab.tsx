@@ -1,19 +1,35 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react'
-import { CheckCircle2, Lightbulb, Play, RotateCcw, ShieldCheck, Sparkles, X } from 'lucide-react'
+import { CheckCircle2, Lightbulb, Pencil, Play, RotateCcw, ShieldCheck, Sparkles, Trash2, X } from 'lucide-react'
+import {
+  duplicateName,
+  evaluateAccess,
+  SIMULATION_SCOPE,
+  validName,
+  validPolicyAction,
+  validPolicyResource,
+  validRequestAction,
+  validRequestResource,
+  validTrust,
+  type Effect,
+  type Policy,
+  type Principal,
+  type SimState,
+} from './iamEngine'
 import './lab.css'
 
 type Mode = 'closed' | 'missions' | 'sandbox'
 type FlowPhase = 'idle' | 'identity' | 'iam' | 'result'
 type Verdict = { decision: 'ALLOW' | 'DENY'; reason: string }
+type PolicyDraft = Pick<Policy, 'effect' | 'action' | 'resource' | 'requireMfa'>
 
-interface SimState {
-  users: string[]
-  mfaUsers: string[]
-  groups: Record<string, string[]>
-  policies: Record<string, { effect: 'Allow' | 'Deny'; action: string; resource: string }>
-  attachedGroupPolicies: Record<string, string[]>
-  roles: Record<string, { trust: string; policy: string | null }>
+const DEFAULT_DRAFT: PolicyDraft = {
+  effect: 'Allow',
+  action: 's3:GetObject',
+  resource: 'arn:aws:s3:::student-demo-bucket/*',
+  requireMfa: false,
 }
+
+const DEFAULT_CALLERS = ['lambda.amazonaws.com', 'ec2.amazonaws.com', 's3.amazonaws.com']
 
 const INITIAL_STATE: SimState = {
   users: ['sara.dev'],
@@ -24,17 +40,21 @@ const INITIAL_STATE: SimState = {
       effect: 'Allow',
       action: 's3:GetObject',
       resource: 'arn:aws:s3:::student-demo-bucket/*',
+      requireMfa: false,
     },
     DenyAllS3: {
       effect: 'Deny',
       action: 's3:*',
       resource: '*',
+      requireMfa: false,
     },
   },
   attachedGroupPolicies: { Developers: [], Finance: [] },
+  attachedUserPolicies: {},
   roles: {
-    OrderFunctionRole: { trust: 'lambda.amazonaws.com', policy: null },
+    OrderFunctionRole: { trust: 'lambda.amazonaws.com', policies: [] },
   },
+  addedMemberships: [],
 }
 
 const MISSIONS = [
@@ -51,16 +71,18 @@ const MISSIONS = [
     goal: 'Put a user in a group and attach ReadOrdersBucket to it.',
     hint: 'Pick a group and a user, click Add, then attach ReadOrdersBucket.',
     check: (s: SimState) =>
-      Object.entries(s.attachedGroupPolicies).some(
-        ([group, policies]) => policies.includes('ReadOrdersBucket') && (s.groups[group]?.length ?? 0) > 0,
+      s.addedMemberships.some(
+        (membership) =>
+          (s.groups[membership.group] ?? []).includes(membership.user) &&
+          (s.attachedGroupPolicies[membership.group] ?? []).includes('ReadOrdersBucket'),
       ),
   },
   {
     id: 3,
     title: 'Lambda role',
     goal: 'Attach ReadOrdersBucket to OrderFunctionRole.',
-    hint: 'In the role card, choose ReadOrdersBucket in the select.',
-    check: (s: SimState) => s.roles.OrderFunctionRole?.policy === 'ReadOrdersBucket',
+    hint: 'In the role card, choose ReadOrdersBucket in the select, then click Attach.',
+    check: (s: SimState) => (s.roles.OrderFunctionRole?.policies ?? []).includes('ReadOrdersBucket'),
   },
 ]
 
@@ -75,6 +97,13 @@ function initials(name: string) {
   return (clean.slice(0, 2) || '?').toUpperCase()
 }
 
+function nameError(value: string, label: string, names: string[], max = 64): string {
+  if (!value) return `Enter a ${label} name.`
+  if (!validName(value, max)) return `Use 1–${max} characters: letters, numbers, and + = , . @ _ - only.`
+  if (duplicateName(names, value)) return `The ${label} "${value}" already exists.`
+  return ''
+}
+
 interface IamLabProps {
   mode: Mode
   onClose: () => void
@@ -83,13 +112,35 @@ interface IamLabProps {
 
 export default function IamLab({ mode, onClose, onSwitchMode }: IamLabProps) {
   const [state, setState] = useState<SimState>(INITIAL_STATE)
+
   const [newUser, setNewUser] = useState('')
+  const [userError, setUserError] = useState('')
+
+  const [newGroup, setNewGroup] = useState('')
+  const [groupError, setGroupError] = useState('')
   const [selectedGroup, setSelectedGroup] = useState('Developers')
   const [selectedMember, setSelectedMember] = useState('sara.dev')
-  const [selectedPolicy, setSelectedPolicy] = useState('ReadOrdersBucket')
+  const [selectedGroupPolicy, setSelectedGroupPolicy] = useState('ReadOrdersBucket')
+
+  const [selectedUser, setSelectedUser] = useState('sara.dev')
+  const [selectedUserPolicy, setSelectedUserPolicy] = useState('ReadOrdersBucket')
+
+  const [newRole, setNewRole] = useState('')
+  const [newTrust, setNewTrust] = useState('lambda.amazonaws.com')
+  const [roleError, setRoleError] = useState('')
+  const [rolePolicyPick, setRolePolicyPick] = useState<Record<string, string>>({})
+
+  const [newPolicyName, setNewPolicyName] = useState('')
+  const [policyDraft, setPolicyDraft] = useState<PolicyDraft>(DEFAULT_DRAFT)
+  const [editingPolicy, setEditingPolicy] = useState<string | null>(null)
+  const [policyError, setPolicyError] = useState('')
+
   const [simPrincipal, setSimPrincipal] = useState('user:sara.dev')
+  const [simCaller, setSimCaller] = useState('lambda.amazonaws.com')
   const [simAction, setSimAction] = useState('s3:GetObject')
   const [simResource, setSimResource] = useState('arn:aws:s3:::student-demo-bucket/notes.pdf')
+  const [simError, setSimError] = useState('')
+
   const [showHint, setShowHint] = useState<Record<number, boolean>>({})
   const [flowPhase, setFlowPhase] = useState<FlowPhase>('idle')
   const [tested, setTested] = useState<Verdict | null>(null)
@@ -110,6 +161,34 @@ export default function IamLab({ mode, onClose, onSwitchMode }: IamLabProps) {
       rotate: Math.random() * 360,
     })),
   )
+
+  const groupNames = Object.keys(state.groups)
+  const roleNames = Object.keys(state.roles)
+  const policyNames = Object.keys(state.policies)
+
+  // Selections can point at something that was just deleted. Fall back without extra effects.
+  const activeGroup = state.groups[selectedGroup] ? selectedGroup : groupNames[0] ?? ''
+  const activeMember = state.users.includes(selectedMember) ? selectedMember : state.users[0] ?? ''
+  const activeGroupPolicy = state.policies[selectedGroupPolicy] ? selectedGroupPolicy : policyNames[0] ?? ''
+  const activeUser = state.users.includes(selectedUser) ? selectedUser : state.users[0] ?? ''
+  const activeUserPolicy = state.policies[selectedUserPolicy] ? selectedUserPolicy : policyNames[0] ?? ''
+  const principalOptions = [
+    ...state.users.map((user) => `user:${user}`),
+    ...roleNames.map((role) => `role:${role}`),
+  ]
+  const activePrincipal = principalOptions.includes(simPrincipal)
+    ? simPrincipal
+    : principalOptions[0] ?? ''
+  const simIsRole = activePrincipal.startsWith('role:')
+  const simName = activePrincipal.slice(activePrincipal.indexOf(':') + 1)
+  const simRole = simIsRole ? state.roles[simName] : undefined
+  const callerOptions = [
+    ...new Set(
+      [...DEFAULT_CALLERS, ...roleNames.map((role) => state.roles[role].trust), simRole?.trust ?? ''].filter(
+        (caller): caller is string => Boolean(caller),
+      ),
+    ),
+  ]
 
   const completedMissions = MISSIONS.filter((mission) => mission.check(state))
   const completedIds = completedMissions.map((mission) => mission.id)
@@ -167,18 +246,36 @@ export default function IamLab({ mode, onClose, onSwitchMode }: IamLabProps) {
   }
 
   function createUser() {
-    const clean = newUser.trim().toLowerCase().replace(/[^a-z0-9._-]/g, '')
-    if (!clean || state.users.includes(clean)) return
-    setState((prev) => ({
-      ...prev,
-      users: [...prev.users, clean],
-      groups: {
-        ...prev.groups,
-        [selectedGroup]: [...(prev.groups[selectedGroup] ?? []), clean],
-      },
-    }))
-    setSelectedMember(clean)
+    const name = newUser.trim()
+    const error = nameError(name, 'user', state.users, 64)
+    if (error) {
+      setUserError(error)
+      return
+    }
+    setState((prev) => ({ ...prev, users: [...prev.users, name] }))
     setNewUser('')
+    setUserError('')
+  }
+
+  function deleteUser(user: string) {
+    setState((prev) => {
+      const groups = Object.fromEntries(
+        Object.entries(prev.groups).map(([group, members]) => [group, members.filter((member) => member !== user)]),
+      )
+      const attachedUserPolicies = { ...prev.attachedUserPolicies }
+      delete attachedUserPolicies[user]
+      return {
+        ...prev,
+        users: prev.users.filter((item) => item !== user),
+        mfaUsers: prev.mfaUsers.filter((item) => item !== user),
+        groups,
+        attachedUserPolicies,
+      }
+    })
+    if (activePrincipal === `user:${user}`) {
+      const fallback = state.users.find((item) => item !== user)
+      setSimPrincipal(fallback ? `user:${fallback}` : roleNames[0] ? `role:${roleNames[0]}` : '')
+    }
   }
 
   function toggleMfa(user: string) {
@@ -190,94 +287,280 @@ export default function IamLab({ mode, onClose, onSwitchMode }: IamLabProps) {
     }))
   }
 
-  function addUserToGroup() {
-    if (!selectedMember) return
+  function createGroup() {
+    const name = newGroup.trim()
+    const error = nameError(name, 'group', groupNames, 128)
+    if (error) {
+      setGroupError(error)
+      return
+    }
+    setState((prev) => ({
+      ...prev,
+      groups: { ...prev.groups, [name]: [] },
+      attachedGroupPolicies: { ...prev.attachedGroupPolicies, [name]: [] },
+    }))
+    setSelectedGroup(name)
+    setNewGroup('')
+    setGroupError('')
+  }
+
+  function deleteGroup(group: string) {
     setState((prev) => {
-      const current = prev.groups[selectedGroup] ?? []
-      if (current.includes(selectedMember)) return prev
-      return {
-        ...prev,
-        groups: { ...prev.groups, [selectedGroup]: [...current, selectedMember] },
-      }
+      const groups = { ...prev.groups }
+      const attachedGroupPolicies = { ...prev.attachedGroupPolicies }
+      delete groups[group]
+      delete attachedGroupPolicies[group]
+      return { ...prev, groups, attachedGroupPolicies }
     })
+    if (activeGroup === group) {
+      setSelectedGroup(groupNames.find((name) => name !== group) ?? '')
+    }
+  }
+
+  function addUserToGroup() {
+    if (!activeGroup) {
+      setGroupError('Create a group first.')
+      return
+    }
+    if (!activeMember) {
+      setGroupError('Create a user first.')
+      return
+    }
+    if ((state.groups[activeGroup] ?? []).includes(activeMember)) {
+      setGroupError(`${activeMember} is already in ${activeGroup}.`)
+      return
+    }
+    setState((prev) => ({
+      ...prev,
+      groups: { ...prev.groups, [activeGroup]: [...(prev.groups[activeGroup] ?? []), activeMember] },
+      addedMemberships: [...prev.addedMemberships, { group: activeGroup, user: activeMember }],
+    }))
+    setGroupError('')
+  }
+
+  function removeUserFromGroup(group: string, user: string) {
+    setState((prev) => ({
+      ...prev,
+      groups: { ...prev.groups, [group]: (prev.groups[group] ?? []).filter((member) => member !== user) },
+    }))
   }
 
   function attachPolicyToGroup() {
-    setState((prev) => {
-      const current = prev.attachedGroupPolicies[selectedGroup] ?? []
-      if (current.includes(selectedPolicy)) return prev
-      return {
-        ...prev,
-        attachedGroupPolicies: {
-          ...prev.attachedGroupPolicies,
-          [selectedGroup]: [...current, selectedPolicy],
-        },
-      }
-    })
-  }
-
-  function attachPolicyToRole(roleName: string, policyName: string) {
+    if (!activeGroup) {
+      setGroupError('Create a group first.')
+      return
+    }
+    if (!activeGroupPolicy) {
+      setGroupError('Create a policy first.')
+      return
+    }
+    if ((state.attachedGroupPolicies[activeGroup] ?? []).includes(activeGroupPolicy)) {
+      setGroupError(`${activeGroupPolicy} is already attached to ${activeGroup}.`)
+      return
+    }
     setState((prev) => ({
       ...prev,
-      roles: {
-        ...prev.roles,
-        [roleName]: { ...prev.roles[roleName], policy: policyName || null },
+      attachedGroupPolicies: {
+        ...prev.attachedGroupPolicies,
+        [activeGroup]: [...(prev.attachedGroupPolicies[activeGroup] ?? []), activeGroupPolicy],
+      },
+    }))
+    setGroupError('')
+  }
+
+  function detachPolicyFromGroup(group: string, policy: string) {
+    setState((prev) => ({
+      ...prev,
+      attachedGroupPolicies: {
+        ...prev.attachedGroupPolicies,
+        [group]: (prev.attachedGroupPolicies[group] ?? []).filter((name) => name !== policy),
       },
     }))
   }
 
-  function evaluateAccess(): Verdict {
-    const matchingPolicies: Array<{ name: string; effect: 'Allow' | 'Deny' }> = []
-
-    if (simPrincipal.startsWith('user:')) {
-      const user = simPrincipal.replace('user:', '')
-      for (const [group, members] of Object.entries(state.groups)) {
-        if (members.includes(user)) {
-          for (const policyName of state.attachedGroupPolicies[group] ?? []) {
-            const policy = state.policies[policyName]
-            if (policy) matchingPolicies.push({ name: policyName, effect: policy.effect })
-          }
-        }
-      }
-    } else if (simPrincipal.startsWith('role:')) {
-      const role = state.roles[simPrincipal.replace('role:', '')]
-      if (role?.policy && state.policies[role.policy]) {
-        matchingPolicies.push({ name: role.policy, effect: state.policies[role.policy].effect })
-      }
+  function attachPolicyToUser() {
+    if (!activeUser) {
+      setUserError('Create a user first.')
+      return
     }
-
-    const matchesActionAndResource = (policyName: string) => {
-      const policy = state.policies[policyName]
-      if (!policy) return false
-      const actionOk = policy.action === '*' || policy.action === simAction || (policy.action.endsWith(':*') && simAction.startsWith(policy.action.slice(0, -1)))
-      const resourceOk = policy.resource === '*' || policy.resource === simResource || (policy.resource.endsWith('/*') && simResource.startsWith(policy.resource.slice(0, -1)))
-      return actionOk && resourceOk
+    if (!activeUserPolicy) {
+      setUserError('Create a policy first.')
+      return
     }
-
-    const applicable = matchingPolicies.filter((policy) => matchesActionAndResource(policy.name))
-    if (applicable.some((policy) => policy.effect === 'Deny')) {
-      return { decision: 'DENY', reason: 'An explicit Deny matched this request and wins over every Allow.' }
+    if ((state.attachedUserPolicies[activeUser] ?? []).includes(activeUserPolicy)) {
+      setUserError(`${activeUserPolicy} is already attached to ${activeUser}.`)
+      return
     }
-    if (applicable.some((policy) => policy.effect === 'Allow')) {
-      return { decision: 'ALLOW', reason: 'A matching Allow policy was found, with no Deny to block it.' }
-    }
-    return { decision: 'DENY', reason: 'Implicit default deny: no attached policy allows this action on this resource.' }
+    setState((prev) => ({
+      ...prev,
+      attachedUserPolicies: {
+        ...prev.attachedUserPolicies,
+        [activeUser]: [...(prev.attachedUserPolicies[activeUser] ?? []), activeUserPolicy],
+      },
+    }))
+    setUserError('')
   }
 
-  function runTest() {
-    resetFlow()
-    setFlowPhase('identity')
-    const result = evaluateAccess()
-    flowTimers.current.push(window.setTimeout(() => setFlowPhase('iam'), 550))
-    flowTimers.current.push(window.setTimeout(() => {
-      setTested(result)
-      setFlowPhase('result')
-    }, 1200))
+  function detachPolicyFromUser(user: string, policy: string) {
+    setState((prev) => ({
+      ...prev,
+      attachedUserPolicies: {
+        ...prev.attachedUserPolicies,
+        [user]: (prev.attachedUserPolicies[user] ?? []).filter((name) => name !== policy),
+      },
+    }))
   }
 
-  function startTest() {
-    simRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-    flowTimers.current.push(window.setTimeout(runTest, 420))
+  function createRole() {
+    const name = newRole.trim()
+    const trust = newTrust.trim()
+    const error = nameError(name, 'role', roleNames, 64)
+    if (error) {
+      setRoleError(error)
+      return
+    }
+    if (!trust) {
+      setRoleError('Enter the service principal that can assume this role.')
+      return
+    }
+    if (!validTrust(trust)) {
+      setRoleError('Use a service principal such as lambda.amazonaws.com.')
+      return
+    }
+    setState((prev) => ({ ...prev, roles: { ...prev.roles, [name]: { trust, policies: [] } } }))
+    setNewRole('')
+    setRoleError('')
+  }
+
+  function deleteRole(role: string) {
+    setState((prev) => {
+      const roles = { ...prev.roles }
+      delete roles[role]
+      return { ...prev, roles }
+    })
+    if (activePrincipal === `role:${role}`) {
+      setSimPrincipal(state.users[0] ? `user:${state.users[0]}` : '')
+    }
+  }
+
+  function attachPolicyToRole(role: string) {
+    const policy = rolePolicyPick[role] ?? ''
+    if (!policy) {
+      setRoleError('Choose a policy to attach.')
+      return
+    }
+    if ((state.roles[role]?.policies ?? []).includes(policy)) {
+      setRoleError(`${policy} is already attached to ${role}.`)
+      return
+    }
+    setState((prev) => ({
+      ...prev,
+      roles: {
+        ...prev.roles,
+        [role]: { ...prev.roles[role], policies: [...(prev.roles[role]?.policies ?? []), policy] },
+      },
+    }))
+    setRolePolicyPick((prev) => ({ ...prev, [role]: '' }))
+    setRoleError('')
+  }
+
+  function detachPolicyFromRole(role: string, policy: string) {
+    setState((prev) => ({
+      ...prev,
+      roles: {
+        ...prev.roles,
+        [role]: { ...prev.roles[role], policies: (prev.roles[role]?.policies ?? []).filter((name) => name !== policy) },
+      },
+    }))
+  }
+
+  function startEditPolicy(name: string) {
+    const policy = state.policies[name]
+    if (!policy) return
+    setEditingPolicy(name)
+    setNewPolicyName(name)
+    setPolicyDraft({
+      effect: policy.effect,
+      action: policy.action,
+      resource: policy.resource,
+      requireMfa: policy.requireMfa,
+    })
+    setPolicyError('')
+  }
+
+  function cancelPolicyEdit() {
+    setEditingPolicy(null)
+    setNewPolicyName('')
+    setPolicyDraft(DEFAULT_DRAFT)
+    setPolicyError('')
+  }
+
+  function savePolicy() {
+    const name = newPolicyName.trim()
+    const action = policyDraft.action.trim()
+    const resource = policyDraft.resource.trim()
+    if (!name) {
+      setPolicyError('Enter a policy name.')
+      return
+    }
+    if (!validName(name, 128)) {
+      setPolicyError('Use 1–128 characters for the policy name: letters, numbers, and + = , . @ _ - only.')
+      return
+    }
+    if (!editingPolicy && duplicateName(policyNames, name)) {
+      setPolicyError(`The policy "${name}" already exists.`)
+      return
+    }
+    if (!action) {
+      setPolicyError('Enter an action such as s3:GetObject or s3:*.')
+      return
+    }
+    if (!validPolicyAction(action)) {
+      setPolicyError('Use service:Action, for example s3:GetObject, s3:*, or *.')
+      return
+    }
+    if (!resource) {
+      setPolicyError('Enter a resource ARN or *.')
+      return
+    }
+    if (!validPolicyResource(resource)) {
+      setPolicyError('Use * or an ARN such as arn:aws:s3:::student-demo-bucket/*.')
+      return
+    }
+    setState((prev) => ({
+      ...prev,
+      policies: {
+        ...prev.policies,
+        [name]: { effect: policyDraft.effect, action, resource, requireMfa: policyDraft.requireMfa },
+      },
+    }))
+    setPolicyError('')
+    setEditingPolicy(null)
+    setNewPolicyName('')
+    setPolicyDraft(DEFAULT_DRAFT)
+  }
+
+  function deletePolicy(name: string) {
+    setState((prev) => {
+      const policies = { ...prev.policies }
+      delete policies[name]
+      const strip = (map: Record<string, string[]>) =>
+        Object.fromEntries(Object.entries(map).map(([key, value]) => [key, value.filter((item) => item !== name)]))
+      const roles = Object.fromEntries(
+        Object.entries(prev.roles).map(([role, info]) => [
+          role,
+          { ...info, policies: info.policies.filter((item) => item !== name) },
+        ]),
+      )
+      return {
+        ...prev,
+        policies,
+        attachedGroupPolicies: strip(prev.attachedGroupPolicies),
+        attachedUserPolicies: strip(prev.attachedUserPolicies),
+        roles,
+      }
+    })
+    if (editingPolicy === name) cancelPolicyEdit()
   }
 
   function resetAll() {
@@ -286,12 +569,27 @@ export default function IamLab({ mode, onClose, onSwitchMode }: IamLabProps) {
     window.clearTimeout(celebrateTimer.current)
     setState(INITIAL_STATE)
     setNewUser('')
+    setUserError('')
+    setNewGroup('')
+    setGroupError('')
     setSelectedGroup('Developers')
     setSelectedMember('sara.dev')
-    setSelectedPolicy('ReadOrdersBucket')
+    setSelectedGroupPolicy('ReadOrdersBucket')
+    setSelectedUser('sara.dev')
+    setSelectedUserPolicy('ReadOrdersBucket')
+    setNewRole('')
+    setNewTrust('lambda.amazonaws.com')
+    setRoleError('')
+    setRolePolicyPick({})
+    setNewPolicyName('')
+    setPolicyDraft(DEFAULT_DRAFT)
+    setEditingPolicy(null)
+    setPolicyError('')
     setSimPrincipal('user:sara.dev')
+    setSimCaller('lambda.amazonaws.com')
     setSimAction('s3:GetObject')
     setSimResource('arn:aws:s3:::student-demo-bucket/notes.pdf')
+    setSimError('')
     setShowHint({})
     setToast(null)
     setCelebrate(false)
@@ -303,10 +601,50 @@ export default function IamLab({ mode, onClose, onSwitchMode }: IamLabProps) {
     onSwitchMode(next)
   }
 
+  function runTest() {
+    if (!activePrincipal) {
+      setSimError('Create a user or a role before running a request.')
+      resetFlow()
+      return
+    }
+    const action = simAction.trim()
+    const resource = simResource.trim()
+    if (!validRequestAction(action)) {
+      setSimError('Use one action such as s3:GetObject. Wildcards belong in policies, not in a request.')
+      resetFlow()
+      return
+    }
+    if (!validRequestResource(resource)) {
+      setSimError('Use one concrete ARN such as arn:aws:s3:::student-demo-bucket/notes.pdf. Wildcards belong in policies, not in a request.')
+      resetFlow()
+      return
+    }
+
+    setSimError('')
+    resetFlow()
+    const principal: Principal = activePrincipal.startsWith('role:')
+      ? { kind: 'role', name: activePrincipal.slice(5), caller: simCaller }
+      : { kind: 'user', name: activePrincipal.slice(5) }
+    const result = evaluateAccess(state, principal, action, resource)
+
+    setFlowPhase('identity')
+    flowTimers.current.push(window.setTimeout(() => setFlowPhase('iam'), 550))
+    flowTimers.current.push(
+      window.setTimeout(() => {
+        setTested(result)
+        setFlowPhase('result')
+      }, 1200),
+    )
+  }
+
+  function startTest() {
+    simRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    flowTimers.current.push(window.setTimeout(runTest, 420))
+  }
+
   if (mode === 'closed') return null
 
   const doneCount = completedMissions.length
-  const simName = simPrincipal.slice(5)
   const simLabel = simName.length > 16 ? `${simName.slice(0, 15)}…` : simName
   const targetIndex = simAction.startsWith('s3:') || simResource.includes('s3')
     ? 0
@@ -419,9 +757,14 @@ export default function IamLab({ mode, onClose, onSwitchMode }: IamLabProps) {
           </>
         ) : (
           <p className="lab-sandbox-note">
-            <Sparkles size={14} aria-hidden="true" /> Everything is unlocked. Create users, groups and roles, then test any request below.
+            <Sparkles size={14} aria-hidden="true" /> Everything is unlocked. Create users, groups, roles and policies, then test any request below.
           </p>
         )}
+
+        <p className="lab-scope">
+          <ShieldCheck size={14} aria-hidden="true" />
+          <span><b>Simulation scope:</b> {SIMULATION_SCOPE}</span>
+        </p>
 
         <div className="lab-grid">
           <section className="lab-box">
@@ -436,22 +779,41 @@ export default function IamLab({ mode, onClose, onSwitchMode }: IamLabProps) {
               <input
                 type="text"
                 value={newUser}
-                onChange={(event) => setNewUser(event.target.value)}
+                onChange={(event) => { setNewUser(event.target.value); setUserError('') }}
                 onKeyDown={(event) => { if (event.key === 'Enter') createUser() }}
                 placeholder="e.g. karim.dev"
                 aria-label="New IAM username"
               />
               <button type="button" className="btn lab-btn" onClick={createUser}>Create</button>
             </div>
+            {userError && <p className="lab-error" role="alert">{userError}</p>}
             <ul className="lab-user-list">
               {state.users.map((user) => {
                 const hasMfa = state.mfaUsers.includes(user)
+                const directPolicies = state.attachedUserPolicies[user] ?? []
                 return (
                   <li key={user} className="lab-user">
                     <span className="lab-user-avatar" aria-hidden="true">{initials(user)}</span>
                     <span className="lab-user-name">
                       <code>{user}</code>
                       <small>{hasMfa ? 'MFA on' : 'MFA off'}</small>
+                      {directPolicies.length > 0 && (
+                        <span className="lab-policy-row">
+                          {directPolicies.map((policy) => (
+                            <span key={policy} className="lab-policy">
+                              {policy}
+                              <button
+                                type="button"
+                                className="lab-x"
+                                aria-label={`Detach ${policy} from ${user}`}
+                                onClick={() => detachPolicyFromUser(user, policy)}
+                              >
+                                ×
+                              </button>
+                            </span>
+                          ))}
+                        </span>
+                      )}
                     </span>
                     <button
                       type="button"
@@ -460,56 +822,130 @@ export default function IamLab({ mode, onClose, onSwitchMode }: IamLabProps) {
                       aria-pressed={hasMfa}
                       aria-label={`Turn MFA ${hasMfa ? 'off' : 'on'} for ${user}`}
                     />
+                    <button
+                      type="button"
+                      className="lab-mini"
+                      aria-label={`Delete user ${user}`}
+                      onClick={() => deleteUser(user)}
+                    >
+                      <Trash2 size={12} />
+                    </button>
                   </li>
                 )
               })}
             </ul>
+            {state.users.length === 0 && <p className="lab-empty">No users yet.</p>}
+
+            <p className="lab-sub">Direct user policies</p>
+            <div className="lab-row">
+              <select aria-label="User for a direct policy" value={activeUser} onChange={(event) => setSelectedUser(event.target.value)}>
+                {state.users.map((user) => <option key={user} value={user}>{user}</option>)}
+              </select>
+              <select aria-label="Policy to attach directly to a user" value={activeUserPolicy} onChange={(event) => setSelectedUserPolicy(event.target.value)}>
+                {policyNames.map((policy) => <option key={policy} value={policy}>{policy}</option>)}
+              </select>
+              <button type="button" className="btn lab-btn alt" onClick={attachPolicyToUser} disabled={!activeUser || !activeUserPolicy}>Attach</button>
+            </div>
           </section>
 
           <section className="lab-box">
             <div className="lab-box-head">
               <span className="lab-box-num">02</span>
               <div>
-                <p className="lab-box-kicker">Permissions</p>
-                <h3>Groups &amp; policies</h3>
+                <p className="lab-box-kicker">Documents</p>
+                <h3>Policies</h3>
               </div>
             </div>
-            <div className="lab-row">
-              <select value={selectedGroup} onChange={(event) => setSelectedGroup(event.target.value)} aria-label="Group">
-                {Object.keys(state.groups).map((group) => <option key={group} value={group}>{group}</option>)}
-              </select>
-              <select value={selectedMember} onChange={(event) => setSelectedMember(event.target.value)} aria-label="User to add">
-                {state.users.map((user) => <option key={user} value={user}>{user}</option>)}
-              </select>
-              <button type="button" className="btn lab-btn alt" onClick={addUserToGroup}>Add</button>
+            <div className="lab-policy-form">
+              <div className="lab-row">
+                <input
+                  type="text"
+                  value={newPolicyName}
+                  onChange={(event) => { setNewPolicyName(event.target.value); setPolicyError('') }}
+                  placeholder="Policy name"
+                  aria-label="Policy name"
+                  disabled={editingPolicy !== null}
+                />
+                <select
+                  value={policyDraft.effect}
+                  onChange={(event) => setPolicyDraft((current) => ({ ...current, effect: event.target.value as Effect }))}
+                  aria-label="Policy effect"
+                >
+                  <option value="Allow">Allow</option>
+                  <option value="Deny">Deny</option>
+                </select>
+              </div>
+              <div className="lab-row">
+                <input
+                  type="text"
+                  value={policyDraft.action}
+                  onChange={(event) => { setPolicyDraft((current) => ({ ...current, action: event.target.value })); setPolicyError('') }}
+                  placeholder="s3:GetObject or s3:*"
+                  aria-label="Policy action"
+                />
+              </div>
+              <div className="lab-row">
+                <input
+                  type="text"
+                  value={policyDraft.resource}
+                  onChange={(event) => { setPolicyDraft((current) => ({ ...current, resource: event.target.value })); setPolicyError('') }}
+                  placeholder="arn:aws:s3:::bucket/* or *"
+                  aria-label="Policy resource"
+                />
+              </div>
+              <label className="lab-check">
+                <input
+                  type="checkbox"
+                  checked={policyDraft.requireMfa}
+                  onChange={(event) => setPolicyDraft((current) => ({ ...current, requireMfa: event.target.checked }))}
+                />
+                Require MFA (aws:MultiFactorAuthPresent)
+              </label>
+              <div className="lab-row">
+                <button type="button" className="btn lab-btn" onClick={savePolicy}>
+                  {editingPolicy ? 'Save policy' : 'Create policy'}
+                </button>
+                {editingPolicy && (
+                  <button type="button" className="btn lab-btn alt" onClick={cancelPolicyEdit}>Cancel</button>
+                )}
+              </div>
+              {policyError && <p className="lab-error" role="alert">{policyError}</p>}
             </div>
-            <div className="lab-row">
-              <select value={selectedPolicy} onChange={(event) => setSelectedPolicy(event.target.value)} aria-label="Policy">
-                {Object.keys(state.policies).map((policy) => <option key={policy} value={policy}>{policy}</option>)}
-              </select>
-              <button type="button" className="btn lab-btn" onClick={attachPolicyToGroup}>Attach</button>
-            </div>
-            <div className="lab-groups">
-              {Object.entries(state.groups).map(([group, members]) => (
-                <div key={group} className="lab-group">
-                  <div className="lab-group-head">
-                    <strong>{group}</strong>
-                    <span>{members.length} member{members.length === 1 ? '' : 's'}</span>
+
+            <div className="lab-policy-list">
+              {policyNames.map((policyName) => {
+                const policy = state.policies[policyName]
+                return (
+                  <div key={policyName} className="lab-policy-card">
+                    <div className="lab-policy-card-head">
+                      <strong>{policyName}</strong>
+                      <span className={`lab-effect ${policy.effect.toLowerCase()}`}>{policy.effect}</span>
+                      <span className="lab-policy-tools">
+                        <button
+                          type="button"
+                          className="lab-mini"
+                          aria-label={`Edit policy ${policyName}`}
+                          onClick={() => startEditPolicy(policyName)}
+                        >
+                          <Pencil size={12} />
+                        </button>
+                        <button
+                          type="button"
+                          className="lab-mini"
+                          aria-label={`Delete policy ${policyName}`}
+                          onClick={() => deletePolicy(policyName)}
+                        >
+                          <Trash2 size={12} />
+                        </button>
+                      </span>
+                    </div>
+                    <code>{policy.action}</code>
+                    <code>{policy.resource}</code>
+                    {policy.requireMfa && <small>Requires MFA</small>}
                   </div>
-                  <div className="lab-chips">
-                    {members.length
-                      ? members.map((member) => <span key={member} className="lab-chip">{member}</span>)
-                      : <span className="lab-empty">No members yet</span>}
-                  </div>
-                  <div className="lab-policy-row">
-                    {(state.attachedGroupPolicies[group] ?? []).length
-                      ? (state.attachedGroupPolicies[group] ?? []).map((policy) => (
-                          <span key={policy} className="lab-policy"><ShieldCheck size={11} />{policy}</span>
-                        ))
-                      : <span className="lab-empty">No policy attached</span>}
-                  </div>
-                </div>
-              ))}
+                )
+              })}
+              {policyNames.length === 0 && <p className="lab-empty">No policies yet.</p>}
             </div>
           </section>
 
@@ -517,42 +953,190 @@ export default function IamLab({ mode, onClose, onSwitchMode }: IamLabProps) {
             <div className="lab-box-head">
               <span className="lab-box-num">03</span>
               <div>
-                <p className="lab-box-kicker">Temporary access</p>
-                <h3>Lambda role</h3>
+                <p className="lab-box-kicker">Permissions</p>
+                <h3>Groups &amp; policies</h3>
               </div>
             </div>
-            {Object.entries(state.roles).map(([roleName, roleInfo]) => (
-              <div key={roleName} className="lab-role">
-                <div className="lab-role-head">
-                  <span className="lab-role-icon" aria-hidden="true"><ShieldCheck size={15} /></span>
-                  <div>
-                    <strong>{roleName}</strong>
-                    <small>Trusted by {roleInfo.trust}</small>
+            <div className="lab-row">
+              <input
+                type="text"
+                value={newGroup}
+                onChange={(event) => { setNewGroup(event.target.value); setGroupError('') }}
+                onKeyDown={(event) => { if (event.key === 'Enter') createGroup() }}
+                placeholder="New group name"
+                aria-label="New group name"
+              />
+              <button type="button" className="btn lab-btn alt" onClick={createGroup}>Create group</button>
+            </div>
+            <div className="lab-row">
+              <select value={activeGroup} onChange={(event) => setSelectedGroup(event.target.value)} aria-label="Group">
+                {groupNames.map((group) => <option key={group} value={group}>{group}</option>)}
+              </select>
+              <select value={activeMember} onChange={(event) => setSelectedMember(event.target.value)} aria-label="User to add">
+                {state.users.map((user) => <option key={user} value={user}>{user}</option>)}
+              </select>
+              <button type="button" className="btn lab-btn alt" onClick={addUserToGroup} disabled={!activeGroup || !activeMember}>Add</button>
+            </div>
+            <div className="lab-row">
+              <select value={activeGroupPolicy} onChange={(event) => setSelectedGroupPolicy(event.target.value)} aria-label="Policy">
+                {policyNames.map((policy) => <option key={policy} value={policy}>{policy}</option>)}
+              </select>
+              <button type="button" className="btn lab-btn" onClick={attachPolicyToGroup} disabled={!activeGroup || !activeGroupPolicy}>Attach</button>
+            </div>
+            {groupError && <p className="lab-error" role="alert">{groupError}</p>}
+            <div className="lab-groups">
+              {groupNames.map((group) => {
+                const members = state.groups[group] ?? []
+                const policies = state.attachedGroupPolicies[group] ?? []
+                return (
+                  <div key={group} className="lab-group">
+                    <div className="lab-group-head">
+                      <strong>{group}</strong>
+                      <span className="lab-group-tools">
+                        {members.length} member{members.length === 1 ? '' : 's'}
+                        <button
+                          type="button"
+                          className="lab-mini"
+                          aria-label={`Delete group ${group}`}
+                          onClick={() => deleteGroup(group)}
+                        >
+                          <Trash2 size={12} />
+                        </button>
+                      </span>
+                    </div>
+                    <div className="lab-chips">
+                      {members.length
+                        ? members.map((member) => (
+                            <span key={member} className="lab-chip">
+                              {member}
+                              <button
+                                type="button"
+                                className="lab-x"
+                                aria-label={`Remove ${member} from ${group}`}
+                                onClick={() => removeUserFromGroup(group, member)}
+                              >
+                                ×
+                              </button>
+                            </span>
+                          ))
+                        : <span className="lab-empty">No members yet</span>}
+                    </div>
+                    <div className="lab-policy-row">
+                      {policies.length
+                        ? policies.map((policy) => (
+                            <span key={policy} className="lab-policy">
+                              <ShieldCheck size={11} />{policy}
+                              <button
+                                type="button"
+                                className="lab-x"
+                                aria-label={`Detach ${policy} from ${group}`}
+                                onClick={() => detachPolicyFromGroup(group, policy)}
+                              >
+                                ×
+                              </button>
+                            </span>
+                          ))
+                        : <span className="lab-empty">No policy attached</span>}
+                    </div>
+                  </div>
+                )
+              })}
+              {groupNames.length === 0 && <p className="lab-empty">No groups yet.</p>}
+            </div>
+          </section>
+
+          <section className="lab-box">
+            <div className="lab-box-head">
+              <span className="lab-box-num">04</span>
+              <div>
+                <p className="lab-box-kicker">Temporary access</p>
+                <h3>Roles</h3>
+              </div>
+            </div>
+            <div className="lab-row">
+              <input
+                type="text"
+                value={newRole}
+                onChange={(event) => { setNewRole(event.target.value); setRoleError('') }}
+                placeholder="New role name"
+                aria-label="New role name"
+              />
+              <input
+                type="text"
+                value={newTrust}
+                onChange={(event) => { setNewTrust(event.target.value); setRoleError('') }}
+                placeholder="lambda.amazonaws.com"
+                aria-label="Trusted service principal"
+              />
+              <button type="button" className="btn lab-btn alt" onClick={createRole}>Create role</button>
+            </div>
+            {roleError && <p className="lab-error" role="alert">{roleError}</p>}
+            {roleNames.map((roleName) => {
+              const roleInfo = state.roles[roleName]
+              return (
+                <div key={roleName} className="lab-role">
+                  <div className="lab-role-head">
+                    <span className="lab-role-icon" aria-hidden="true"><ShieldCheck size={15} /></span>
+                    <div>
+                      <strong>{roleName}</strong>
+                      <small>Trusted by {roleInfo.trust}</small>
+                    </div>
+                    <button
+                      type="button"
+                      className="lab-mini"
+                      aria-label={`Delete role ${roleName}`}
+                      onClick={() => deleteRole(roleName)}
+                    >
+                      <Trash2 size={12} />
+                    </button>
+                  </div>
+                  <div className="lab-role-flow" aria-hidden="true">
+                    <span>Caller</span><i>→</i><span>assumes role</span><i>→</i><span>policy</span>
+                  </div>
+                  <div className="lab-row">
+                    <select
+                      value={rolePolicyPick[roleName] ?? ''}
+                      onChange={(event) => setRolePolicyPick((current) => ({ ...current, [roleName]: event.target.value }))}
+                      aria-label={`Policy to attach to ${roleName}`}
+                    >
+                      <option value="">Choose policy</option>
+                      {policyNames.map((policy) => <option key={policy} value={policy}>{policy}</option>)}
+                    </select>
+                    <button
+                      type="button"
+                      className="btn lab-btn alt"
+                      onClick={() => attachPolicyToRole(roleName)}
+                      disabled={!rolePolicyPick[roleName]}
+                    >
+                      Attach
+                    </button>
+                  </div>
+                  <div className="lab-policy-row">
+                    {roleInfo.policies.length
+                      ? roleInfo.policies.map((policy) => (
+                          <span key={policy} className="lab-policy">
+                            <ShieldCheck size={11} />{policy}
+                            <button
+                              type="button"
+                              className="lab-x"
+                              aria-label={`Detach ${policy} from ${roleName}`}
+                              onClick={() => detachPolicyFromRole(roleName, policy)}
+                            >
+                              ×
+                            </button>
+                          </span>
+                        ))
+                      : <span className="lab-empty">No policy attached</span>}
                   </div>
                 </div>
-                <div className="lab-role-flow" aria-hidden="true">
-                  <span>Lambda</span><i>→</i><span>assumes role</span><i>→</i><span>policy</span>
-                </div>
-                <select
-                  value={roleInfo.policy ?? ''}
-                  onChange={(event) => attachPolicyToRole(roleName, event.target.value)}
-                  aria-label={`Policy for ${roleName}`}
-                >
-                  <option value="">No policy</option>
-                  {Object.keys(state.policies).map((policy) => <option key={policy} value={policy}>{policy}</option>)}
-                </select>
-                <div className="lab-policy-row">
-                  {roleInfo.policy
-                    ? <span className="lab-policy"><ShieldCheck size={11} />{roleInfo.policy}</span>
-                    : <span className="lab-empty">No policy attached</span>}
-                </div>
-              </div>
-            ))}
+              )
+            })}
+            {roleNames.length === 0 && <p className="lab-empty">No roles yet.</p>}
           </section>
 
           <section ref={simRef} className="lab-box lab-sim-box">
             <div className="lab-box-head">
-              <span className="lab-box-num">04</span>
+              <span className="lab-box-num">05</span>
               <div>
                 <p className="lab-box-kicker">Animated check</p>
                 <h3>Request tester</h3>
@@ -565,19 +1149,30 @@ export default function IamLab({ mode, onClose, onSwitchMode }: IamLabProps) {
                   <label>
                     Identity
                     <select
-                      value={simPrincipal}
-                      onChange={(event) => { setSimPrincipal(event.target.value); resetFlow() }}
+                      value={activePrincipal}
+                      onChange={(event) => { setSimPrincipal(event.target.value); setSimError(''); resetFlow() }}
                     >
                       {state.users.map((user) => <option key={user} value={`user:${user}`}>IAM user · {user}</option>)}
-                      {Object.keys(state.roles).map((role) => <option key={role} value={`role:${role}`}>IAM role · {role}</option>)}
+                      {roleNames.map((role) => <option key={role} value={`role:${role}`}>IAM role · {role}</option>)}
                     </select>
                   </label>
+                  {simIsRole && (
+                    <label>
+                      Assumed by
+                      <select
+                        value={simCaller}
+                        onChange={(event) => { setSimCaller(event.target.value); setSimError(''); resetFlow() }}
+                      >
+                        {callerOptions.map((caller) => <option key={caller} value={caller}>{caller}</option>)}
+                      </select>
+                    </label>
+                  )}
                   <label>
                     Action
                     <input
                       type="text"
                       value={simAction}
-                      onChange={(event) => { setSimAction(event.target.value); resetFlow() }}
+                      onChange={(event) => { setSimAction(event.target.value); setSimError(''); resetFlow() }}
                     />
                   </label>
                   <label>
@@ -585,9 +1180,10 @@ export default function IamLab({ mode, onClose, onSwitchMode }: IamLabProps) {
                     <input
                       type="text"
                       value={simResource}
-                      onChange={(event) => { setSimResource(event.target.value); resetFlow() }}
+                      onChange={(event) => { setSimResource(event.target.value); setSimError(''); resetFlow() }}
                     />
                   </label>
+                  {simError && <p className="lab-error" role="alert">{simError}</p>}
                   <button type="button" className="btn lab-btn lab-run" onClick={runTest} disabled={running}>
                     <Play size={13} aria-hidden="true" />
                     {running ? 'Checking…' : 'Run request'}

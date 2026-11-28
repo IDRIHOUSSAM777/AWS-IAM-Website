@@ -4,7 +4,7 @@ Guide pour les coéquipiers : **cloner → installer → lancer**.
 Le site fonctionne en local, mais il utilise une **base de données MySQL/MariaDB qui tourne dans une machine virtuelle (VM)**. KYUBI (l'assistant IA) utilise une clé Gemini **partagée par l'équipe**, qui reste côté serveur.
 
 > ⚠️ **La VM doit être allumée par le propriétaire du projet.**
-> Sans elle, le site s'affiche quand même, mais enregistrer un nom, le quiz et le classement ne fonctionnent pas.
+> Sans elle, le site s'affiche quand même, mais le quiz et le classement ne fonctionnent pas.
 > La VM est sur le réseau privé `192.168.59.128` : il faut être sur le même réseau (ou VPN).
 > Demander au propriétaire (1) d'allumer la VM et (2) le mot de passe de la base **en privé**.
 > Aucune base, aucun mot de passe et aucune donnée réelle ne sont dans ce dépôt.
@@ -87,9 +87,9 @@ n'apparaît jamais dans le code frontend ni dans le réseau du navigateur.
 
 ## 4 bis. La base de données (VM) — le propriétaire doit l'allumer
 
-Le site enregistre les noms et les réponses du quiz dans une base **MySQL/MariaDB** qui tourne dans une **machine virtuelle**. Elle n'est pas dans ce dépôt.
+Le site enregistre les réponses du quiz dans une base **MySQL/MariaDB** qui tourne dans une **machine virtuelle**. Elle n'est pas dans ce dépôt. Aucun nom, compte ou profil visiteur n'est enregistré : chaque navigateur garde un identifiant de session aléatoire dans `localStorage`.
 
-- **La VM doit être allumée** par le propriétaire, sinon impossible d'enregistrer un nom, de faire le quiz ou d'afficher le classement. Le reste du site fonctionne quand même.
+- **La VM doit être allumée** par le propriétaire, sinon impossible de faire le quiz ou d'afficher le classement. Le reste du site fonctionne quand même.
 - La VM est sur le réseau privé `192.168.59.128` (port `3306`) : il faut être sur le même réseau ou en VPN.
 - Demander au propriétaire : (1) d'allumer la VM, (2) le mot de passe de la base, **jamais par message public**.
 - Le schéma de la base est dans `aws-iam-platform/database/schema.sql`. Aucune donnée réelle n'est dans le dépôt.

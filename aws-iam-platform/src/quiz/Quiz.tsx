@@ -1,205 +1,271 @@
-import { useCallback, useEffect, useState } from 'react'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
-import { useProfile } from '../profile/profileContext'
-import { announceQuizChange, fetchQuiz, QuizApiError, submitAnswer, type QuizQuestion, type QuizState } from './quizApi'
-import { openLeaderboard } from './leaderboardBus'
+import { useEffect, useRef, useState } from 'react'
+import bankData from './iam-quiz-questions.json'
+import {
+  ATTEMPT_SIZE,
+  DIFFICULTIES,
+  DIFFICULTY_LABEL,
+  QUESTIONS_PER_DIFFICULTY,
+  pickAttempt,
+  scoreAttempt,
+  type BankQuestion,
+  type Difficulty,
+  type QuizQuestion,
+} from './quizEngine'
 import './quiz.css'
 
-const PER_PAGE = 3
+const bank = (bankData as { questions: BankQuestion[] }).questions
+
+const STAGE: Record<Difficulty, { step: string; level: string; name: string }> = {
+  easy: { step: '01', level: 'N1', name: 'Beginner' },
+  medium: { step: '02', level: 'N2', name: 'Intermediate' },
+  hard: { step: '03', level: 'N3', name: 'Advanced' },
+}
+
+function verdictFor(score: number) {
+  if (score === ATTEMPT_SIZE) return 'Perfect score. You are ready to build.'
+  if (score >= 7) return 'Strong result. You know how IAM decides access.'
+  if (score >= 4) return 'Good start. Revisit the lessons above, then try a new set.'
+  return 'Keep practicing. The lessons above explain every answer.'
+}
+
+/** Three-stage rail: each stage fills as its questions are answered. */
+function StageRail({ position }: { position: number }) {
+  return (
+    <ol className="qz-rail" aria-hidden="true">
+      {DIFFICULTIES.map((level, stageIndex) => {
+        const start = stageIndex * QUESTIONS_PER_DIFFICULTY
+        const answered = Math.min(Math.max(position - start, 0), QUESTIONS_PER_DIFFICULTY)
+        const state =
+          answered === QUESTIONS_PER_DIFFICULTY ? 'done' : position >= start ? 'now' : 'next'
+        return (
+          <li className={`qz-rail-step ${level} ${state}`} key={level}>
+            <span className="qz-rail-bar">
+              <span style={{ width: `${(answered / QUESTIONS_PER_DIFFICULTY) * 100}%` }} />
+            </span>
+            <span className="qz-rail-label">
+              <b>{STAGE[level].level}</b> {STAGE[level].name}
+            </span>
+          </li>
+        )
+      })}
+    </ol>
+  )
+}
 
 export default function Quiz() {
-  const { name, clear } = useProfile()
-  const [state, setState] = useState<QuizState | null>(null)
-  const [error, setError] = useState<string | null>(null)
-  const [loading, setLoading] = useState(() => Boolean(name))
-  const [page, setPage] = useState(0)
-  const [picked, setPicked] = useState<Record<number, number>>({})
-  const [sending, setSending] = useState<number | null>(null)
-  const [notice, setNotice] = useState<Record<number, string>>({})
+  const [attempt, setAttempt] = useState<QuizQuestion[]>(() => pickAttempt(bank))
+  const [index, setIndex] = useState(0)
+  const [selected, setSelected] = useState<number | null>(null)
+  const [submitted, setSubmitted] = useState(false)
+  const [answers, setAnswers] = useState<Array<number | null>>(() => Array(ATTEMPT_SIZE).fill(null))
+  const [finished, setFinished] = useState(false)
+  const [stageIntro, setStageIntro] = useState<Difficulty | null>(null)
 
-  const load = useCallback(async () => {
-    setLoading(true)
-    setError(null)
-    try {
-      const data = await fetchQuiz()
-      setState(data)
-      const firstOpen = data.questions.findIndex((q) => !q.answered)
-      setPage(firstOpen === -1 ? 0 : Math.floor(firstOpen / PER_PAGE))
-    } catch (caught) {
-      setState(null)
-      setError(caught instanceof QuizApiError ? caught.message : 'Something went wrong on our side. Please try again in a moment.')
-    } finally {
-      setLoading(false)
-    }
-  }, [])
+  const continueRef = useRef<HTMLButtonElement | null>(null)
+  const stepRef = useRef<HTMLDivElement | null>(null)
+  const arrivedFromStage = useRef(false)
+
+  const score = scoreAttempt(attempt, answers)
+
+  // The button that opened the chapter card is gone, so keep keyboard focus in the quiz.
+  useEffect(() => {
+    if (stageIntro) continueRef.current?.focus()
+  }, [stageIntro])
 
   useEffect(() => {
-    if (!name) return
-    let active = true
-    void fetchQuiz().then(
-      (data) => {
-        if (!active) return
-        setState(data)
-        setError(null)
-        const firstOpen = data.questions.findIndex((q) => !q.answered)
-        setPage(firstOpen === -1 ? 0 : Math.floor(firstOpen / PER_PAGE))
-        setLoading(false)
-      },
-      (caught) => {
-        if (!active) return
-        setState(null)
-        setError(caught instanceof QuizApiError ? caught.message : 'Something went wrong on our side. Please try again in a moment.')
-        setLoading(false)
-      },
-    )
-    return () => {
-      active = false
-    }
-  }, [name])
+    if (!arrivedFromStage.current) return
+    arrivedFromStage.current = false
+    stepRef.current?.focus()
+  }, [index])
 
-  async function handleSubmit(question: QuizQuestion) {
-    const choice = picked[question.slot]
-    if (choice === undefined || sending !== null) return
-    setSending(question.slot)
-    setNotice((current) => ({ ...current, [question.slot]: '' }))
-    try {
-      const result = await submitAnswer(question.slot, choice)
-      setState((current) =>
-        current
-          ? {
-              ...current,
-              score: result.score,
-              answered: result.answered,
-              questions: current.questions.map((q) => (q.slot === result.question.slot ? result.question : q)),
-            }
-          : current,
+  function submitAnswer() {
+    if (selected === null || submitted) return
+    setAnswers((current) => current.map((answer, position) => (position === index ? selected : answer)))
+    setSubmitted(true)
+  }
+
+  function goTo(position: number) {
+    setIndex(position)
+    setSelected(null)
+    setSubmitted(false)
+  }
+
+  function nextQuestion() {
+    if (index === attempt.length - 1) {
+      setFinished(true)
+      return
+    }
+    const upcoming = attempt[index + 1].difficulty
+    if (upcoming !== attempt[index].difficulty) {
+      setStageIntro(upcoming)
+      return
+    }
+    goTo(index + 1)
+  }
+
+  function continueStage() {
+    if (!stageIntro) return
+    setStageIntro(null)
+    arrivedFromStage.current = true
+    goTo(index + 1)
+  }
+
+  function restart() {
+    setAttempt(pickAttempt(bank))
+    setIndex(0)
+    setSelected(null)
+    setSubmitted(false)
+    setAnswers(Array(ATTEMPT_SIZE).fill(null))
+    setFinished(false)
+    setStageIntro(null)
+  }
+
+  if (finished) {
+    const levelScore = (level: Difficulty) =>
+      attempt.reduce(
+        (count, question, position) =>
+          count + (question.difficulty === level && answers[position] === question.answer ? 1 : 0),
+        0,
       )
-      announceQuizChange()
-    } catch (caught) {
-      setNotice((current) => ({
-        ...current,
-        [question.slot]: caught instanceof QuizApiError ? caught.message : 'Your answer could not be saved. Please try again.',
-      }))
-    } finally {
-      setSending(null)
-    }
-  }
 
-  if (!name) {
     return (
       <div className="qz" id="check-yourself">
         <h4>Check yourself</h4>
-        <div className="qz-panel qz-center">
-          <p className="qz-big">Your score needs a name.</p>
-          <p className="mu">Tell us how to call you, and your answers will be kept with your name.</p>
-          <button className="btn" type="button" onClick={() => void clear().catch(() => undefined)}>Choose a name</button>
+        <div className="qz-panel qz-result">
+          <p className="qz-kicker">All three stages complete</p>
+          <p className="qz-score" aria-live="polite">
+            {score}
+            <span> / {ATTEMPT_SIZE}</span>
+          </p>
+          <p className="qz-verdict">{verdictFor(score)}</p>
+          <div className="qz-breakdown">
+            {DIFFICULTIES.map((level) => (
+              <span className={`qz-chip ${level}`} key={level}>
+                <b>{STAGE[level].level}</b> {STAGE[level].name}
+                <span className="qz-chip-score">
+                  {levelScore(level)}/{QUESTIONS_PER_DIFFICULTY}
+                </span>
+              </span>
+            ))}
+          </div>
+          <div className="qz-result-act">
+            <button className="btn" type="button" onClick={restart}>
+              Try another 9 questions
+            </button>
+            <a className="btn alt" href="#lab">
+              Enter IAM Lab
+            </a>
+          </div>
         </div>
       </div>
     )
   }
 
-  if (loading) {
-    return (
-      <div className="qz" id="check-yourself">
-        <h4>Check yourself</h4>
-        <div className="qz-panel qz-center"><p className="mu" role="status">Preparing your questions…</p></div>
-      </div>
-    )
-  }
-
-  if (error || !state) {
-    return (
-      <div className="qz" id="check-yourself">
-        <h4>Check yourself</h4>
-        <div className="qz-panel qz-center">
-          <p className="qz-big">{error ?? 'The quiz is not available at the moment.'}</p>
-          <button className="btn" type="button" onClick={() => void load()}>Try again</button>
-        </div>
-      </div>
-    )
-  }
-
-  const pages = Math.max(1, Math.ceil(state.questions.length / PER_PAGE))
-  const visible = state.questions.slice(page * PER_PAGE, page * PER_PAGE + PER_PAGE)
-  const finished = state.answered === state.total && state.total > 0
+  const question = attempt[index]
+  const answeredCorrectly = submitted && selected === question.answer
+  const intro = stageIntro
+  const introFrom = intro ? DIFFICULTIES[DIFFICULTIES.indexOf(intro) - 1] : null
+  const tone = intro ?? question.difficulty
 
   return (
     <div className="qz" id="check-yourself">
       <h4>Check yourself</h4>
-      <div className="qz-panel">
+      <div className={`qz-panel stage-${tone}`}>
         <div className="qz-top">
-          <span>Page {page + 1} of {pages}</span>
-          <span>Answered {state.answered} of {state.total}</span>
+          <span>
+            {intro && introFrom
+              ? `Stage ${STAGE[introFrom].step} of 03 complete`
+              : `Question ${index + 1} of ${ATTEMPT_SIZE}`}
+          </span>
+          <span className="qz-top-right">
+            <span className={`qz-level ${tone}`}>{DIFFICULTY_LABEL[tone]}</span>
+          </span>
         </div>
 
-        {visible.map((question) => {
-          const chosen = question.answered ? question.chosen : picked[question.slot]
-          return (
-            <fieldset className="qz-q" key={question.slot} disabled={question.answered}>
-              <legend>{question.slot}. {question.text}</legend>
+        <StageRail position={index} />
+
+        {intro && introFrom ? (
+          <div className="qz-stagecard" role="status" aria-live="polite" key={intro}>
+            <div className="qz-levelup" aria-hidden="true">
+              <span className="qz-ring" />
+              <span className="qz-ring" />
+              <span className="qz-ring" />
+              <span className="qz-levelup-num">{STAGE[intro].step}</span>
+            </div>
+            <p className="qz-kicker">Stage {STAGE[introFrom].step} complete</p>
+            <p className="qz-stagecard-title">
+              You're moving to Stage {STAGE[intro].step} — {STAGE[intro].name}
+            </p>
+            <div className="qz-act">
+              <button className="btn" type="button" onClick={continueStage} ref={continueRef}>
+                Continue →
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="qz-step" key={question.id} ref={stepRef} tabIndex={-1}>
+            <fieldset className="qz-q" disabled={submitted}>
+              <legend>{question.question}</legend>
               <div className="qz-opts">
-                {question.options.map((option, index) => {
-                  const isChosen = chosen === index
-                  const look = question.answered
-                    ? index === question.correct ? 'right' : isChosen ? 'wrong' : ''
-                    : isChosen ? 'on' : ''
+                {question.choices.map((choice, choiceIndex) => {
+                  const chosen = selected === choiceIndex
+                  const look = submitted
+                    ? choiceIndex === question.answer
+                      ? 'right'
+                      : chosen
+                        ? 'wrong'
+                        : ''
+                    : chosen
+                      ? 'on'
+                      : ''
                   return (
-                    <label className={`qz-opt ${look}`} key={index}>
+                    <label className={`qz-opt ${look}`} key={choice}>
                       <input
                         type="radio"
-                        name={`q-${question.slot}`}
-                        checked={isChosen}
-                        onChange={() => setPicked((current) => ({ ...current, [question.slot]: index }))}
+                        name={`q-${index}`}
+                        checked={chosen}
+                        onChange={() => setSelected(choiceIndex)}
                       />
                       <span className="qz-radio" aria-hidden="true" />
-                      <span className="qz-text">{option}</span>
-                      {question.answered && index === question.correct ? <span className="qz-flag">Right answer</span> : null}
-                      {question.answered && isChosen && index !== question.correct ? <span className="qz-flag">Your answer</span> : null}
+                      <span className="qz-text">{choice}</span>
+                      {submitted && choiceIndex === question.answer ? (
+                        <span className="qz-flag">Right answer</span>
+                      ) : null}
+                      {submitted && chosen && choiceIndex !== question.answer ? (
+                        <span className="qz-flag">Your answer</span>
+                      ) : null}
                     </label>
                   )
                 })}
               </div>
 
-              {question.answered ? (
-                <div className={`qz-fb ${question.isCorrect ? 'ok' : 'no'}`} role="status">
-                  <b>{question.isCorrect ? 'Well done! You earned 1 point.' : 'Not this time, but now you know.'}</b>
-                  <span>{question.explanation}</span>
+              {submitted ? (
+                <div className={`qz-fb ${answeredCorrectly ? 'ok' : 'no'}`} role="status">
+                  <b>{answeredCorrectly ? 'Correct. +1 point' : 'Not quite.'}</b>
+                  <span>
+                    {answeredCorrectly ? '' : `Correct answer: ${question.choices[question.answer]}. `}
+                    {question.explanation}
+                  </span>
                 </div>
-              ) : (
-                <div className="qz-act">
-                  <button className="btn" type="button" disabled={chosen === undefined || sending !== null} onClick={() => void handleSubmit(question)}>
-                    {sending === question.slot ? 'One moment…' : 'Submit answer'}
-                  </button>
-                  {notice[question.slot] ? <span className="qz-err" role="alert">{notice[question.slot]}</span> : null}
-                </div>
-              )}
+              ) : null}
             </fieldset>
-          )
-        })}
 
-        <div className="qz-foot">
-          <p className="qz-count">{state.score} of {state.total} correct</p>
-          <div className="qz-pager" role="group" aria-label="Quiz pages">
-            <button type="button" className="qz-arrow" aria-label="Previous page" disabled={page === 0} onClick={() => setPage(page - 1)}>
-              <ChevronLeft size={20} aria-hidden="true" />
-            </button>
-            <span className="qz-dots">
-              {Array.from({ length: pages }, (_, index) => (
-                <button key={index} type="button" className={index === page ? 'on' : ''} aria-label={`Page ${index + 1}`} aria-current={index === page ? 'true' : undefined} onClick={() => setPage(index)} />
-              ))}
-            </span>
-            <button type="button" className="qz-arrow" aria-label="Next page" disabled={page >= pages - 1} onClick={() => setPage(page + 1)}>
-              <ChevronRight size={20} aria-hidden="true" />
-            </button>
+            <div className="qz-act">
+              {submitted ? (
+                <button className="btn" type="button" onClick={nextQuestion}>
+                  {index === attempt.length - 1 ? 'See my score' : 'Next question'}
+                </button>
+              ) : (
+                <button className="btn" type="button" disabled={selected === null} onClick={submitAnswer}>
+                  Submit answer
+                </button>
+              )}
+              <span className="qz-count">
+                {score} of {ATTEMPT_SIZE} correct so far
+              </span>
+            </div>
           </div>
-          <span className="qz-spacer" />
-        </div>
-
-        {finished ? (
-          <p className="qz-done">
-            You finished all {state.total} questions with {state.score} correct. <button className="qz-link" type="button" onClick={openLeaderboard}>See the leaderboard</button>.
-          </p>
-        ) : null}
+        )}
       </div>
     </div>
   )

@@ -1,6 +1,6 @@
 # AWS IAM Student Builder
 
-An interactive learning website that introduces AWS Identity and Access Management (IAM) through visual explanations and browser-based examples — plus **KYUBI**, an AI assistant, a saved-visitor-name feature, and a short quiz with a leaderboard.
+An interactive learning website that introduces AWS Identity and Access Management (IAM) through visual explanations and browser-based examples — plus **KYUBI**, an AI assistant, a detailed IAM guide with a question bank, and a short quiz. No account, name or registration is required.
 
 ---
 
@@ -10,7 +10,7 @@ This project is not only static files. It has a **frontend**, a **backend** (`se
 
 Before you run the project, understand this:
 
-- **The VM must be powered on by the owner of the project.** If the VM is off, the site still opens, but saving a name / the quiz / the leaderboard will not work.
+- **The VM must be powered on by the owner of the project.** If the VM is off, the site still opens, but the quiz will not work.
 - The VM is on a **private network** (`192.168.59.128`). Your computer must be on the **same network or VPN** to reach it.
 - **Ask the owner (IDRIHOUSSAM777) to:**
   1. turn the VM on, and
@@ -24,8 +24,8 @@ Before you run the project, understand this:
 - IAM users, groups, roles, and policies explained with a NovaShop example
 - Interactive access-request and allow/deny demonstrations
 - A guided walkthrough of how policies are evaluated
-- A short IAM knowledge check with a leaderboard
-- A name/welcome feature stored in a database
+- A short IAM knowledge check
+- A detailed IAM guide (`/iam`) with a 236-question bank, focus mode and PDF export
 - KYUBI, the AI assistant (Google Gemini, key kept on the server)
 - An animated AWS cloud hero
 
@@ -73,11 +73,10 @@ Open the local URL printed by Vite (usually <http://localhost:5173>).
 | Feature | Needs the VM | Needs Gemini key |
 | --- | --- | --- |
 | The whole IAM course and demos | no | no |
-| Saving a name / welcome-back | **yes** | no |
-| Quiz + leaderboard | **yes** | no |
+| Quiz | **yes** | no |
 | KYUBI answers | no | **yes** |
 
-If the VM is off, saving a name shows a polite message instead of an error, and you can still use the rest of the site. If there is no Gemini key, KYUBI replies that it is not connected yet — not a bug.
+If the VM is off, the quiz shows a polite message instead of an error, and you can still use the rest of the site. If there is no Gemini key, KYUBI replies that it is not connected yet — not a bug.
 
 ## Run your own database with Docker (optional)
 

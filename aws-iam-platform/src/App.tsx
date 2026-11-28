@@ -5,10 +5,8 @@ import './App.css'
 import HeroStage from './HeroStage'
 import NovaShopDemo from './NovaShopDemo'
 import Quiz from './quiz/Quiz'
-import Leaderboard from './quiz/Leaderboard'
 import IamLab from './lab/IamLab'
 import Kyubi from './kyubi/Kyubi'
-import WelcomeBack from './profile/WelcomeBack'
 
 const identities = {
   sara: {
@@ -139,10 +137,7 @@ function App() {
       </div>
     </header>
 
-    <Leaderboard />
-
     <section className="w" aria-label="AWS Student Builder">
-      <WelcomeBack />
       <HeroStage />
     </section>
 
